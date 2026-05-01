@@ -60,12 +60,49 @@ data/my_dataset/
 
 ## Manual download fallback
 
-If `download_data.sh` fails (URLs change), you can place the originals manually:
+The IIIT-H download URL for DRISHTI-GS frequently 404s. Use the manual flow:
 
 | Dataset | Where to look |
 |---|---|
-| DRISHTI-GS | <https://cvit.iiit.ac.in/projects/mip/drishti-gs/mip-dataset2/Home.php> |
+| DRISHTI-GS | <https://cvit.iiit.ac.in/projects/mip/drishti-gs/mip-dataset2/Home.php> (login required) |
 | RIM-ONE v3 | search "RIM-ONE DL release" on the MIAG-ULL GitHub org; mirror locations rotate |
 | In-house | not redistributed |
 
-Then `unzip` into `data/<dataset>/raw/` and run `scripts/preprocess.py`.
+### Manual flow for DRISHTI-GS (recommended)
+
+You'll have downloaded `Drishti-GS1_files.rar` (or .zip) locally — license terms typically forbid redistribution, so don't push it to GitHub. Move it to Spartan via rsync/scp instead:
+
+**On Windows** (one-time):
+
+1. Extract the rar with WinRAR (right-click → Extract Here). You should now have a `Drishti-GS1_files/` folder containing `Training/` and `Test/`.
+2. Re-pack as tar.gz so Spartan's GNU tar can read it without an unrar module:
+
+   ```powershell
+   cd C:\Users\basim\Downloads\glaucoma-rdcnn
+   tar -czf drishti_gs_raw.tar.gz Drishti-GS1_files
+   ```
+
+   (Windows 10+ ships `tar.exe` natively. If you don't have it, `7z a -ttar - Drishti-GS1_files | 7z a -tgzip -si drishti_gs_raw.tar.gz` works too.)
+
+3. rsync to Spartan:
+
+   ```bash
+   rsync -avP drishti_gs_raw.tar.gz spartan:/data/gpfs/projects/punim2920/glaucoma-rdcnn/
+   ```
+
+**On Spartan**:
+
+```bash
+cd /data/gpfs/projects/punim2920/glaucoma-rdcnn
+sbatch slurm/002_download_data.slurm /data/gpfs/projects/punim2920/glaucoma-rdcnn/drishti_gs_raw.tar.gz
+```
+
+The job will: extract the tar.gz, run `scripts/prepare_drishti_gs.py` to convert the official Training/Test/SoftMap layout into the repo's `<stem>{,_od,_oc}.png` triples, then run `scripts/preprocess.py` for CLAHE + 800x800 ROI crops.
+
+### Why not put the rar in git or GitHub Releases
+
+- GitHub rejects single files >100MB on plain push. The DRISHTI rar is ~335MB.
+- DRISHTI-GS license is "for non-commercial research use" with no explicit redistribution clause; uploading to a public repo or release asset is risky.
+- Cloning a 335MB blob from git on every Spartan reset wastes both your time and your home-dir cache.
+
+rsync straight to the project allocation is one command, doesn't pollute git history, and respects the dataset terms.

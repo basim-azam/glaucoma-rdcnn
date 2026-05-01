@@ -54,8 +54,7 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 
-# Project artifacts — anchor with leading slash so these only match at repo
-# root, not inside src/ (where we have src/glaucoma_rdcnn/data/, etc.).
+# Project artifacts — anchored to root so they don't match src/glaucoma_rdcnn/data/
 /data/
 /outputs/
 /logs/
@@ -83,3 +82,12 @@ Thumbs.db
 slurm-*.out
 slurm-*.err
 pytest-cache-files-*
+
+# Raw dataset archives — never commit (size + license)
+*.rar
+*.zip
+*.tar.gz
+*.tgz
+*.7z
+Drishti-GS1_files/
+RIM-ONE*/
