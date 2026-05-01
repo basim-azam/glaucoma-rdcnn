@@ -1,0 +1,51 @@
+name: rdcnn
+backbone:
+  name: resnet34
+  pretrained: true
+  out_channels: 512        # ResNet-34 layer4 output channels
+dac:
+  in_channels: 512
+  out_channels: 256
+  rates: [1, 3, 6, 12]      # PAPER-UNSPEC: paper does not list exact dilation rates; using a standard DAC schedule
+attention:
+  hidden_channels: 256
+  out_channels: 256
+dpn:
+  # PAPER-UNSPEC: anchor sizes / aspect ratios — using Faster R-CNN defaults adapted for OD scale
+  anchor_sizes: [[64, 96, 128, 160, 192]]
+  aspect_ratios: [[0.8, 1.0, 1.25]]
+  pre_nms_top_n_train: 2000
+  post_nms_top_n_train: 1000
+  pre_nms_top_n_test: 1000
+  post_nms_top_n_test: 100
+  nms_thresh: 0.7
+  fg_iou_thresh: 0.5
+  bg_iou_thresh: 0.3
+  roi_output_size: 7
+  representation_size: 1024
+cpn:
+  # OC anchors are smaller (cup is inside the disc)
+  anchor_sizes: [[32, 48, 64, 80, 96]]
+  aspect_ratios: [[0.8, 1.0, 1.25]]
+  pre_nms_top_n_train: 2000
+  post_nms_top_n_train: 1000
+  pre_nms_top_n_test: 1000
+  post_nms_top_n_test: 100
+  nms_thresh: 0.7
+  fg_iou_thresh: 0.5
+  bg_iou_thresh: 0.3
+  roi_output_size: 7
+  representation_size: 1024
+optimizer:
+  name: sgd
+  lr: 0.005           # PAPER-UNSPEC: paper does not state schedule beyond "SGD with momentum"
+  momentum: 0.9
+  weight_decay: 5.0e-4
+scheduler:
+  name: cosine
+  warmup_epochs: 2
+loss_weights:
+  dpn_objectness: 1.0
+  dpn_box: 1.0
+  cpn_objectness: 1.0
+  cpn_box: 1.0

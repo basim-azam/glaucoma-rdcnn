@@ -1,0 +1,9 @@
+# Multi-GPU DDP defaults — used by torchrun --nproc_per_node=N
+trainer:
+  devices: 4
+  precision: 16-mixed
+  strategy: ddp
+  accumulate_grad_batches: 1
+data:
+  batch_size: 4
+  num_workers: 8

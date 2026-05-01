@@ -1,0 +1,8 @@
+# Local single-GPU defaults
+trainer:
+  devices: 1
+  precision: 16-mixed
+  accumulate_grad_batches: 1
+data:
+  batch_size: 4
+  num_workers: 4

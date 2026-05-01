@@ -1,0 +1,11 @@
+# @package _global_
+# Reproduction config for RIM-ONE v3 — table 1 row 2 of the paper.
+defaults:
+  - override /data: rim_one_v3
+  - override /model: rdcnn
+  - override /training: single_gpu
+
+run_name: repro_rimone_${now:%Y%m%d-%H%M%S}
+trainer:
+  max_epochs: 60
+  precision: 16-mixed
