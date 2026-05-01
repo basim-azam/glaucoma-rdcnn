@@ -54,11 +54,12 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 
-# Project artifacts
-data/
-outputs/
-logs/
-checkpoints/
+# Project artifacts — anchor with leading slash so these only match at repo
+# root, not inside src/ (where we have src/glaucoma_rdcnn/data/, etc.).
+/data/
+/outputs/
+/logs/
+/checkpoints/
 *.ckpt
 *.pth
 *.pt
