@@ -16,6 +16,6 @@ cd /data/gpfs/projects/punim2920/glaucoma-rdcnn
 
 CKPT="${1:-outputs/best.ckpt}"
 
-srun python scripts/evaluate.py \
+srun $PY scripts/evaluate.py \
     --config-name=experiment/repro_drishti \
     +checkpoint="$CKPT"

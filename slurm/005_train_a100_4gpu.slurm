@@ -19,7 +19,7 @@ cd /data/gpfs/projects/punim2920/glaucoma-rdcnn
 export NCCL_DEBUG=INFO
 export PYTHONFAULTHANDLER=1
 
-srun torchrun \
+srun ${CONDA_ENV}/bin/torchrun \
     --standalone \
     --nproc_per_node=4 \
     scripts/train.py \

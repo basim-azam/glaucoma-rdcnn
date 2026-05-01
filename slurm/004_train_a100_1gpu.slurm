@@ -16,7 +16,7 @@ set -euo pipefail
 source /data/gpfs/projects/punim2920/glaucoma-rdcnn/slurm/env_spartan.sh
 cd /data/gpfs/projects/punim2920/glaucoma-rdcnn
 
-srun python scripts/train.py \
+srun $PY scripts/train.py \
     --config-name=experiment/repro_drishti \
     training=spartan \
     trainer.devices=1
