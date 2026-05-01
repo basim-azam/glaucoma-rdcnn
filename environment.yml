@@ -1,0 +1,16 @@
+# Conda env spec for local development on CPU/GPU.
+# On Spartan, slurm/001_setup_env.slurm builds the env in the project dir
+# with the CUDA-12.1 PyTorch wheel; this file is for local mirroring only.
+name: glaucoma
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - -r requirements.txt
+      # Local install: PyTorch CPU is fine. For CUDA see slurm/001_setup_env.slurm.
+      - torch==2.5.1
+      - torchvision==0.20.1

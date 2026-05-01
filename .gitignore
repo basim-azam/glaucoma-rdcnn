@@ -1,0 +1,84 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+conda_envs/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/
+coverage.xml
+*.cover
+
+# Mypy / Ruff
+.mypy_cache/
+.ruff_cache/
+
+# Project artifacts
+data/
+outputs/
+logs/
+checkpoints/
+*.ckpt
+*.pth
+*.pt
+wandb/
+mlruns/
+.hydra/
+
+# Secrets — NEVER commit
+.env
+.envrc
+*.token
+*.key
+.secrets/
+hf_token.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spartan / cluster
+slurm-*.out
+slurm-*.err
+pytest-cache-files-*

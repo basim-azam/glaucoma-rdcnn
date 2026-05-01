@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: "glaucoma-rdcnn: Replication of R-DCNN for joint optic disc and cup segmentation"
+message: "If you use this software, please cite the original paper and this repository."
+type: software
+authors:
+  - family-names: Azam
+    given-names: Basim
+    email: basimazam0@gmail.com
+repository-code: "https://github.com/basim-azam/glaucoma-rdcnn"
+license: MIT
+version: 0.1.0
+date-released: 2026-05-01
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Li
+      given-names: Feng
+    - family-names: Xiang
+      given-names: Wei
+    - family-names: Zhang
+      given-names: Lin
+    - family-names: Pan
+      given-names: Wenjuan
+    - family-names: Zhang
+      given-names: Xuemin
+    - family-names: Jiang
+      given-names: Mingshuai
+    - family-names: Zou
+      given-names: Haidong
+  title: "Joint optic disk and cup segmentation for glaucoma screening using a region-based deep learning network"
+  journal: "Eye"
+  year: 2023
+  volume: 37
+  start: 1080
+  end: 1087
+  doi: 10.1038/s41433-022-02055-w

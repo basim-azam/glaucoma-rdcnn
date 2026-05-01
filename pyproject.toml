@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glaucoma-rdcnn"
+version = "0.1.0"
+description = "Region-based Deep CNN for joint optic disc and cup segmentation (replication of Li et al., Eye 2023)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Basim Azam", email = "basimazam0@gmail.com" }
+]
+requires-python = ">=3.10"
+keywords = ["glaucoma", "medical-imaging", "segmentation", "object-detection", "pytorch"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+    "numpy>=1.24,<2.0",
+    "scipy>=1.10",
+    "scikit-image>=0.21",
+    "scikit-learn>=1.3",
+    "opencv-python-headless>=4.8",
+    "Pillow>=10.0",
+    "pyyaml>=6.0",
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+    "tqdm>=4.66",
+    "tensorboard>=2.15",
+    "matplotlib>=3.7",
+    "pandas>=2.0",
+    "wandb>=0.16",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "black>=24.3",
+    "pre-commit>=3.6",
+    "ipython>=8.18",
+    "jupyterlab>=4.0",
+]
+torch = [
+    "torch>=2.5,<2.6",
+    "torchvision>=0.20,<0.21",
+]
+
+[project.urls]
+Homepage = "https://github.com/basim-azam/glaucoma-rdcnn"
+Issues = "https://github.com/basim-azam/glaucoma-rdcnn/issues"
+Paper = "https://doi.org/10.1038/s41433-022-02055-w"
+
+[project.scripts]
+rdcnn-train = "glaucoma_rdcnn.engine.trainer:cli_main"
+rdcnn-eval = "glaucoma_rdcnn.engine.evaluator:cli_main"
+rdcnn-infer = "glaucoma_rdcnn.engine.inference:cli_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+glaucoma_rdcnn = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["notebooks", "data", "outputs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501", "B008", "N812", "N806", "E741", "SIM117"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+extend-exclude = "notebooks|data|outputs"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q --strict-markers --strict-config"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:torch.*",
+    "ignore::UserWarning:torchvision.*",
+]
