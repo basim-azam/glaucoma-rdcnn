@@ -13,8 +13,11 @@ CONDA_ENV=${PROJECT_ROOT}/conda_envs/glaucoma
 # Defaults below are taken from sibling project punim2198 (working as of late 2025).
 module purge
 module load Anaconda3/2024.02-1
-module load CUDA/12.1.1
-module load cuDNN/8.9.2.26-CUDA-12.1.1
+# Spartan ships CUDA 12.2.0 / 12.4.1 / 12.5.1 — no 12.1.x. CUDA 12.2 is
+# forward-compatible with the cu121 PyTorch wheels (the wheels bundle their
+# own libcudart anyway). Verified via `module spider CUDA` on 2026-05-02.
+module load CUDA/12.2.0
+module load cuDNN/8.9.7.29-CUDA-12.2.0
 
 # --- Conda activate (full path so it works from any cwd) ---
 source "$(conda info --base)/etc/profile.d/conda.sh"

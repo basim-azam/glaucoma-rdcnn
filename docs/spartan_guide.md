@@ -117,3 +117,12 @@ sinfo -O cpusstate -p gpu-l40s
 ## When module versions differ
 
 If `module avail Anaconda3` doesn't show `Anaconda3/2024.02-1`, edit `slurm/env_spartan.sh` to whichever version is listed and note the change in `docs/spartan_environment_<date>.log` (created by Phase 1 of the original setup prompt).
+
+### Verified module versions (2026-05-02)
+
+CUDA modules currently on Spartan: `11.5.2`, `11.7.0`, `11.8.0`, `12.2.0`, `12.4.1`, `12.5.1` (default).
+
+This repo loads **`CUDA/12.2.0` + `cuDNN/8.9.7.29-CUDA-12.2.0`** because:
+- The conda env is built against the **`cu121`** PyTorch wheel (`torch==2.5.1+cu121`).
+- CUDA 12.2 is forward-compatible with cu121 binaries (PyTorch wheels bundle their own `libcudart`, so the system CUDA module mainly provides driver-side bits and `nvcc`).
+- CUDA 12.4 / 12.5 also work; we pick 12.2 for the cuDNN minor-version match.
