@@ -27,6 +27,11 @@ export PIP_CACHE_DIR=${PROJECT_ROOT}/.cache/pip
 export CONDA_PKGS_DIRS=${PROJECT_ROOT}/.cache/conda_pkgs
 mkdir -p "$TORCH_HOME" "$HF_HOME" "$PIP_CACHE_DIR" "$CONDA_PKGS_DIRS"
 
+# --- Block pip --user fallback (causes home-dir quota errors on Spartan) ---
+export PIP_USER=no
+export PYTHONUSERBASE=${PROJECT_ROOT}/.cache/pyuser
+mkdir -p "$PYTHONUSERBASE"
+
 # --- HF token ---
 # Add the export to ~/.bashrc once: `echo 'export HF_TOKEN=hf_xxx' >> ~/.bashrc`.
 # It is intentionally NOT echoed or logged here.
