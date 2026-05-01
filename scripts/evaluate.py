@@ -1,7 +1,7 @@
 """Evaluation entry point.
 
 Usage:
-    python scripts/evaluate.py --config-name=experiment/repro_drishti checkpoint=outputs/best.ckpt
+    python scripts/evaluate.py +experiment=repro_drishti +checkpoint=outputs/best.ckpt
 """
 
 from __future__ import annotations

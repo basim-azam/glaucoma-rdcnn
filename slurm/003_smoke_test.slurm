@@ -21,5 +21,5 @@ $PY -c "import torch; print('CUDA available:', torch.cuda.is_available()); print
 echo "==============="
 
 $PY -m pytest tests/ -q
-$PY scripts/train.py --config-name=experiment/repro_drishti trainer.fast_dev_run=true || \
+$PY scripts/train.py +experiment=repro_drishti trainer.fast_dev_run=true || \
     echo "(fast_dev_run failed — likely missing preprocessed data; pytest above is the canonical smoke check)"

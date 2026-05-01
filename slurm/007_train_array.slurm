@@ -25,7 +25,7 @@ BS=$(echo "$ROW" | cut -d, -f3)
 echo "Sweep row $SLURM_ARRAY_TASK_ID: lr=$LR seed=$SEED batch_size=$BS"
 
 srun $PY scripts/train.py \
-    --config-name=experiment/repro_drishti \
+    +experiment=repro_drishti \
     training=spartan \
     trainer.devices=1 \
     seed=$SEED \

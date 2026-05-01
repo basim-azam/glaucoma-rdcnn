@@ -89,13 +89,13 @@ python scripts/preprocess.py --config-name=data/drishti_gs
 
 ```bash
 # Smoke training (one batch, CPU)
-python scripts/train.py --config-name=experiment/repro_drishti trainer.fast_dev_run=true
+python scripts/train.py +experiment=repro_drishti trainer.fast_dev_run=true
 
 # Real training on a single GPU
-python scripts/train.py --config-name=experiment/repro_drishti training=single_gpu
+python scripts/train.py +experiment=repro_drishti training=single_gpu
 
 # Evaluate
-python scripts/evaluate.py --config-name=experiment/repro_drishti checkpoint=outputs/best.ckpt
+python scripts/evaluate.py +experiment=repro_drishti checkpoint=outputs/best.ckpt
 
 # Inference on a single fundus image
 python scripts/infer.py --image=path/to/fundus.jpg --checkpoint=outputs/best.ckpt

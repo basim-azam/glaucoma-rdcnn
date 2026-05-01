@@ -2,8 +2,8 @@
 
 Usage:
     python scripts/train.py                                            # default
-    python scripts/train.py --config-name=experiment/repro_drishti
-    python scripts/train.py training=spartan trainer.devices=4
+    python scripts/train.py +experiment=repro_drishti                  # paper repro on DRISHTI-GS
+    python scripts/train.py +experiment=repro_rimone training=spartan trainer.devices=4
 """
 
 from __future__ import annotations

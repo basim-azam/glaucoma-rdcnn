@@ -36,7 +36,7 @@ python scripts/preprocess.py --config-name=data/rim_one_v3
 Single GPU (local or interactive Spartan session):
 
 ```bash
-python scripts/train.py --config-name=experiment/repro_drishti training=single_gpu
+python scripts/train.py +experiment=repro_drishti training=single_gpu
 ```
 
 Spartan, 1 A100:
@@ -54,7 +54,7 @@ sbatch slurm/005_train_a100_4gpu.slurm
 ## 4. Evaluate
 
 ```bash
-python scripts/evaluate.py --config-name=experiment/repro_drishti +checkpoint=outputs/<run>/best.ckpt
+python scripts/evaluate.py +experiment=repro_drishti +checkpoint=outputs/<run>/best.ckpt
 ```
 
 Or on Spartan:

@@ -23,6 +23,6 @@ srun ${CONDA_ENV}/bin/torchrun \
     --standalone \
     --nproc_per_node=4 \
     scripts/train.py \
-    --config-name=experiment/repro_drishti \
+    +experiment=repro_drishti \
     training=spartan \
     trainer.devices=4
