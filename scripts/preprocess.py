@@ -119,7 +119,18 @@ def main() -> int:
         )
         return 2
 
-    splits = split_by_hash(stems)
+    # Honor an official split sidecar if the dataset adapter wrote one.
+    sidecar = in_root / "splits" / "drishti_official.json"
+    if sidecar.exists():
+        with open(sidecar) as f:
+            official = json.load(f)
+        # Filter to only stems we actually processed (defensive)
+        stem_set = set(stems)
+        splits = {k: [s for s in v if s in stem_set] for k, v in official.items()}
+        print(f"using official split from {sidecar}")
+    else:
+        splits = split_by_hash(stems)
+        print("using hash-based 70/15/15 split (no official sidecar found)")
     splits_path = in_root / "splits" / "official.json"
     splits_path.parent.mkdir(parents=True, exist_ok=True)
     with open(splits_path, "w") as f:
