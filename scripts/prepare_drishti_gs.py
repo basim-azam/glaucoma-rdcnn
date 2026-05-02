@@ -89,16 +89,22 @@ def main() -> int:
         print(f"!! source not found: {src}", file=sys.stderr)
         return 2
 
-    # Some users extract one level too deep / too shallow — try to find the right root
-    candidates = [src, src / "Drishti-GS1_files", src / "Drishti-GS1_files" / "Drishti-GS1_files"]
-    root = next((c for c in candidates if (c / "Training").is_dir()), None)
+    # Locate the directory that directly contains Training/. WinRAR "Extract
+    # Here" + a same-named root inside the archive can produce arbitrarily deep
+    # nesting like Drishti-GS1_files/Drishti-GS1_files/Drishti-GS1_files/Training.
+    # Walk the tree (capped depth) to find it.
+    root = None
+    for candidate in [src, *(p.parent for p in src.rglob("Training") if p.is_dir())]:
+        if (candidate / "Training").is_dir():
+            root = candidate
+            break
     if root is None:
         print(
-            f"!! could not locate Training/ subdir under {src}. Looked in: "
-            + ", ".join(str(c) for c in candidates),
+            f"!! could not locate a Training/ subdir anywhere under {src}",
             file=sys.stderr,
         )
         return 3
+    print(f"using root: {root}")
 
     samples = discover_samples(root)
     if not samples:
