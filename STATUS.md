@@ -28,6 +28,7 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained twice on Spartan
 | 5. Deploy + smoke on Spartan | ✅ done | Setup 24552910 ✓, smoke 24553250 ✓ — `CUDA True / NVIDIA A100` |
 | 6. **Real training (1st run, 35 train images)** | ✅ done | Job 24557959 — OD Dice 93.59%, OC Dice 84.11% on 51-image test |
 | 7. **Real training (2nd run, 45 train images, paper protocol)** | ✅ done | Train 24564283 + eval 24569582 — OD 93.77% / OC 83.80% on 51-test |
+| 8. **Paper-exact 50/51 + multi-seed sweep** | ✅ done | Train 24570666 (best 93.95% OD / 83.84% OC) + array 24570667_[1-6] (mean 87.78 ± 2.78% OD / 79.08 ± 2.27% OC over 6 runs) |
 | 8. RIM-ONE v3 | ⬜ planned | Need to download the dataset + run same pipeline |
 | 9. Multi-seed averaging | ⬜ planned | Use `slurm/007_train_array.slurm` |
 | 10. README results table | ⬜ blocked on (7) | Will fill after eval2 |
@@ -39,14 +40,27 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained twice on Spartan
 
 DRISHTI-GS, evaluated on the official 51-image Test set:
 
-| Run | Train images | Val | OD Dice | OD JC | OC Dice | OC JC | AUC | Notes |
-|---|--:|--:|--:|--:|--:|--:|--:|---|
-| Paper (Li et al. 2023) | 50 | — | 97.23% | 94.17% | 94.56% | 89.92% | 0.968 | reference |
-| Ours, 35 train, 1 seed | 35 | 5 | 93.59% | 88.16% | 84.11% | 74.02% | 0.510 | hash split, w&b run `obqa7sqa` |
-| **Ours, 45 train, 1 seed (paper protocol)** | 45 | 5 | **93.77%** | **88.47%** | **83.80%** | **73.67%** | **0.459** | run `repro_drishti_20260503-073723`, eval job `24569582` |
+| Run | Protocol | OD Dice | OD JC | OC Dice | OC JC | AUC | Notes |
+|---|---|--:|--:|--:|--:|--:|---|
+| Paper (Li et al. 2023) | 50/51 | 97.23% | 94.17% | 94.56% | 89.92% | 0.968 | reference |
+| Ours, 35 train, 1 seed | 35/5/51 | 93.59% | 88.16% | 84.11% | 74.02% | 0.510 | hash split, eval job 24564284 |
+| Ours, 45 train, 1 seed | 45/5/51 | 93.77% | 88.47% | 83.80% | 73.67% | 0.459 | held-out, eval job 24569582 |
+| **Ours, 50 train, 1 seed (paper-exact best)** | 50/51 | **93.95%** | 88.79% | **83.84%** | 73.59% | 0.510 | val=test, run 24570666, eval 24578510 |
+| **Ours, 50 train, 6 runs mean ± std** | 50/51 | **87.78 ± 2.78%** | 79.81 ± 4.51% | **79.08 ± 2.27%** | 66.85 ± 3.55% | 0.64 ± 0.06 | sweep array 24570667 (3 seeds × 2 lrs); see breakdown below |
 
-**Δ from 35→45 train:** OD Dice +0.18, OC Dice −0.31, AUC −0.05.
-Conclusion: 10 extra train images don't move the needle — we're at the single-seed noise floor. **Multi-seed averaging is the necessary next step** before drawing conclusions about hyperparameter changes.
+**Sweep breakdown by learning rate** (3 seeds each, sweep array 24570667):
+
+| lr | OD Dice (mean ± std) | OC Dice (mean ± std) | AUC (mean ± std) |
+|---|--:|--:|--:|
+| **0.005** (default) | **89.79 ± 2.10%** | **80.38 ± 2.54%** | 0.66 ± 0.03 |
+| 0.0025 | 85.76 ± 1.70% | 77.78 ± 0.68% | 0.62 ± 0.07 |
+
+**Key observations:**
+- **OD gap to paper: ~3pp (best single run) or ~9pp (mean across 6 sweep runs).**
+- **OC gap to paper: ~10pp (best) or ~15pp (mean).** Both gaps consistent with smaller-than-paper effective dataset for the cup head.
+- **lr=0.005 dominates lr=0.0025** by ~4pp on OD and ~3pp on OC. Schedule is in the right zone.
+- **Single-seed variance ≈ 2-3 pp on Dice** even with same hyperparameters (CUDA non-determinism). The paper-exact 93.95% vs sweep_1's 92.08% (same config!) is the signal-to-noise of a 1-seed report.
+- **AUC is unreliable at this scale** (std 0.06 across 3 seeds). Don't draw conclusions from a single AUC number.
 
 (Run names map to `outputs/<run_name>/` on Spartan.)
 
@@ -71,6 +85,9 @@ Conclusion: 10 extra train images don't move the needle — we're at the single-
 | `24564283` | rdcnn-train (45 train) | 2:03 | best.ckpt at `outputs/repro_drishti_20260503-073723/best.ckpt` |
 | `24564284` | rdcnn-eval (35-train ckpt vs 51-test) | 0:20 | OD Dice 93.59% / OC Dice 84.11% |
 | `24569582` | rdcnn-eval (45-train ckpt vs 51-test) | 0:25 | OD Dice 93.77% / OC Dice 83.80% |
+| `24570666` | rdcnn-train (50/51 paper-exact) | 1:57 | best.ckpt at `outputs/repro_drishti_20260503-122341/best.ckpt` |
+| `24570667_[1-6]` | rdcnn-array (3 seeds × 2 lrs, paper-exact protocol) | ~2:00 each | 6 ckpts at `outputs/sweep_*/best.ckpt` |
+| `24578508-14` | 7 evaluations | 0:25 each | All metrics in STATUS table above |
 
 ---
 

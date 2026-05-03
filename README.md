@@ -48,20 +48,25 @@ Components:
 
 Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluated on the official 51-image DRISHTI-GS test set:
 
-| Dataset    | Method                              | OD Dice | OD JC  | OC Dice | OC JC  | Glaucoma AUC |
-|------------|-------------------------------------|--------:|-------:|--------:|-------:|-------------:|
-| DRISHTI-GS | R-DCNN (Li et al. 2023)             | 97.23%  | 94.17% | 94.56%  | 89.92% | 0.968        |
-| DRISHTI-GS | **R-DCNN (this repo, 1 seed)**      | **93.77%** | **88.47%** | **83.80%** | **73.67%** | **0.459**    |
-| RIM-ONE v3 | R-DCNN (Li et al. 2023)             | 96.89%  | 91.32% | 88.94%  | 78.21% | 0.941        |
-| RIM-ONE v3 | R-DCNN (this repo)                  | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| Dataset    | Method                                     | Protocol  | OD Dice | OD JC  | OC Dice | OC JC  | Glaucoma AUC |
+|------------|--------------------------------------------|-----------|--------:|-------:|--------:|-------:|-------------:|
+| DRISHTI-GS | R-DCNN (Li et al. 2023)                    | 50/51     | 97.23%  | 94.17% | 94.56%  | 89.92% | 0.968        |
+| DRISHTI-GS | R-DCNN (this repo, 45 train, 1 seed)       | 45/5/51 (held-out val) | 93.77%  | 88.47% | 83.80%  | 73.67% | 0.459        |
+| DRISHTI-GS | R-DCNN (this repo, 50 train, **best of 7**) | 50/51 (val=test) | **93.95%** | 88.79% | **83.84%** | 73.59% | 0.510 |
+| DRISHTI-GS | **R-DCNN (this repo, 50 train, 6-run mean)** | 50/51 | **87.78 ± 2.78%** | 79.81 ± 4.51% | **79.08 ± 2.27%** | 66.85 ± 3.55% | 0.64 ± 0.06 |
+| DRISHTI-GS | R-DCNN (this repo, lr=0.005, 3-seed mean)  | 50/51 | 89.79 ± 2.10% | — | 80.38 ± 2.54% | — | 0.66 ± 0.03 |
+| RIM-ONE v3 | R-DCNN (Li et al. 2023)                    | —         | 96.89%  | 91.32% | 88.94%  | 78.21% | 0.941        |
+| RIM-ONE v3 | R-DCNN (this repo)                         | —         | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
 
 **Notes on the gap:**
-- OD head is within 3-4 pp Dice of the paper — a 1-seed run on a tiny dataset.
-- OC head has a ~10 pp gap that is consistent with single-seed variance + smaller training set than the paper's 50.
-- AUC is unreliable from a single run because val=5 makes checkpoint selection noisy.
-- Multi-seed averaging (`slurm/007_train_array.slurm`) is queued as the next step before claiming any tighter replication.
+- OD head best single run is within ~3 pp Dice of the paper. The 6-run mean is ~9 pp behind, mostly because lr=0.0025 sweep runs underperform.
+- OC head: ~10 pp gap (best) or ~15 pp (mean). The cup is the harder target with smaller surface area.
+- **Single-seed variance is ~2-3 pp Dice** even with identical hyperparameters (CUDA non-determinism). A 1-seed report is genuinely uncertain at that scale.
+- **lr=0.005 beats lr=0.0025** by ~4 pp OD / ~3 pp OC consistently. Default config is well-chosen.
+- AUC has std 0.06 across seeds — single AUC numbers shouldn't be over-interpreted at this dataset size.
+- "val=test" rows have a leakage caveat: best.ckpt is selected against the test set, matching the paper's effective protocol but slightly favouring the test number.
 
-See [`STATUS.md`](STATUS.md) for the live tracker, run history, and full set of next steps.
+See [`STATUS.md`](STATUS.md) for the live tracker, full run history, learning-rate breakdown, and next steps.
 
 ## Install
 
