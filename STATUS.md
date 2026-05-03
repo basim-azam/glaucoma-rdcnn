@@ -2,7 +2,7 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-03
+Last updated: 2026-05-03 (eval2 done — paper-protocol numbers in)
 
 ---
 
@@ -27,7 +27,7 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained twice on Spartan
 | 4. Git workflow | ✅ done | Multiple conventional commits, all authored as you, on `main` |
 | 5. Deploy + smoke on Spartan | ✅ done | Setup 24552910 ✓, smoke 24553250 ✓ — `CUDA True / NVIDIA A100` |
 | 6. **Real training (1st run, 35 train images)** | ✅ done | Job 24557959 — OD Dice 93.59%, OC Dice 84.11% on 51-image test |
-| 7. **Real training (2nd run, 45 train images, paper protocol)** | ⏳ in progress | Train 24564283 done, eval 24569582 pending |
+| 7. **Real training (2nd run, 45 train images, paper protocol)** | ✅ done | Train 24564283 + eval 24569582 — OD 93.77% / OC 83.80% on 51-test |
 | 8. RIM-ONE v3 | ⬜ planned | Need to download the dataset + run same pipeline |
 | 9. Multi-seed averaging | ⬜ planned | Use `slurm/007_train_array.slurm` |
 | 10. README results table | ⬜ blocked on (7) | Will fill after eval2 |
@@ -42,8 +42,11 @@ DRISHTI-GS, evaluated on the official 51-image Test set:
 | Run | Train images | Val | OD Dice | OD JC | OC Dice | OC JC | AUC | Notes |
 |---|--:|--:|--:|--:|--:|--:|--:|---|
 | Paper (Li et al. 2023) | 50 | — | 97.23% | 94.17% | 94.56% | 89.92% | 0.968 | reference |
-| **Ours, 35 train, 1 seed** | 35 | 5 | **93.59%** | 88.16% | **84.11%** | 74.02% | 0.510 | hash split, w&b run `obqa7sqa` |
-| **Ours, 45 train, 1 seed** | 45 | 5 | TBD | TBD | TBD | TBD | TBD | paper-protocol split, run `repro_drishti_20260503-073723` |
+| Ours, 35 train, 1 seed | 35 | 5 | 93.59% | 88.16% | 84.11% | 74.02% | 0.510 | hash split, w&b run `obqa7sqa` |
+| **Ours, 45 train, 1 seed (paper protocol)** | 45 | 5 | **93.77%** | **88.47%** | **83.80%** | **73.67%** | **0.459** | run `repro_drishti_20260503-073723`, eval job `24569582` |
+
+**Δ from 35→45 train:** OD Dice +0.18, OC Dice −0.31, AUC −0.05.
+Conclusion: 10 extra train images don't move the needle — we're at the single-seed noise floor. **Multi-seed averaging is the necessary next step** before drawing conclusions about hyperparameter changes.
 
 (Run names map to `outputs/<run_name>/` on Spartan.)
 
@@ -53,7 +56,7 @@ DRISHTI-GS, evaluated on the official 51-image Test set:
 
 | Job ID | Name | Partition | Status | Purpose |
 |---|---|---|---|---|
-| `24569582` | rdcnn-eval | gpu-a100-short | PD | eval 45-train ckpt against 51-test |
+| _none_ | | | | |
 
 ---
 
@@ -67,6 +70,7 @@ DRISHTI-GS, evaluated on the official 51-image Test set:
 | `24558017` | rdcnn-data | 0:57 | 101 triples, train=45 val=5 test=51 |
 | `24564283` | rdcnn-train (45 train) | 2:03 | best.ckpt at `outputs/repro_drishti_20260503-073723/best.ckpt` |
 | `24564284` | rdcnn-eval (35-train ckpt vs 51-test) | 0:20 | OD Dice 93.59% / OC Dice 84.11% |
+| `24569582` | rdcnn-eval (45-train ckpt vs 51-test) | 0:25 | OD Dice 93.77% / OC Dice 83.80% |
 
 ---
 
@@ -74,13 +78,13 @@ DRISHTI-GS, evaluated on the official 51-image Test set:
 
 ### Immediate (today)
 
-1. **Wait for eval `24569582` to complete.** Captures the 45-train-image checkpoint metrics on the 51-image test set. ETA: ~5 min once scheduled.
-2. **Fill in the results table** in this file and in `README.md` with the eval2 numbers.
-3. **Commit + push** the populated results table. This converts the README from "scaffold" to "first real numbers" status.
+1. ~~Wait for eval `24569582`~~ ✅ done — see results table.
+2. ~~Fill in the results table~~ ✅ done — STATUS.md and README.md both updated.
+3. **Commit + push** the populated results table + new `make_paper_exact_split.py`.
+4. **Paper-exact 50-train run.** Run `scripts/make_paper_exact_split.py` to rewrite `splits/official.json` with train=50, val=test=51. Then `sbatch slurm/004_train_a100_1gpu.slurm`. Adds a third "ours" row, with the leakage caveat. ETA: 5 min for prep + queue + 2 min training.
+5. **Multi-seed averaging in parallel.** Submit `slurm/007_train_array.slurm` with `seeds=[42, 43, 44]` to get mean ± std on both the 45/5/51 (unbiased) and 50/0/51 (paper-exact) protocols. This is the only way to tell if the next experiments (longer training, anchor tuning) actually help vs noise.
 
 ### Short-term (this week)
-
-4. **Multi-seed averaging.** Submit `slurm/007_train_array.slurm` with 3 seeds × 1 lr. Updates `slurm/sweeps/repro.csv` to `seeds = [42, 43, 44], lr = [0.005]`. Outputs mean ± std for both heads. Usually +1-2 pp Dice from ensembling.
 5. **Investigate the OC gap.** Three hypotheses to test:
    - (a) train longer (60 → 120 epochs) — easy
    - (b) larger CPN anchor sizes — config edit

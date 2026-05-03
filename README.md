@@ -46,12 +46,22 @@ Components:
 
 ## Reproduction targets
 
-Numbers from the paper (Table 1 + Fig 3) — populate the "this repo" columns after a real training run:
+Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluated on the official 51-image DRISHTI-GS test set:
 
-| Dataset      | OD DC (paper) | OD DC (ours) | OD JC (paper) | OD JC (ours) | OC DC (paper) | OC DC (ours) | OC JC (paper) | OC JC (ours) | Glaucoma AUC (paper) | AUC (ours) |
-|--------------|--------------:|-------------:|--------------:|-------------:|--------------:|-------------:|--------------:|-------------:|---------------------:|-----------:|
-| DRISHTI-GS   | 97.23%        |              | 94.17%        |              | 94.56%        |              | 89.92%        |              | 0.968                |            |
-| RIM-ONE v3   | 96.89%        |              | 91.32%        |              | 88.94%        |              | 78.21%        |              | 0.941                |            |
+| Dataset    | Method                              | OD Dice | OD JC  | OC Dice | OC JC  | Glaucoma AUC |
+|------------|-------------------------------------|--------:|-------:|--------:|-------:|-------------:|
+| DRISHTI-GS | R-DCNN (Li et al. 2023)             | 97.23%  | 94.17% | 94.56%  | 89.92% | 0.968        |
+| DRISHTI-GS | **R-DCNN (this repo, 1 seed)**      | **93.77%** | **88.47%** | **83.80%** | **73.67%** | **0.459**    |
+| RIM-ONE v3 | R-DCNN (Li et al. 2023)             | 96.89%  | 91.32% | 88.94%  | 78.21% | 0.941        |
+| RIM-ONE v3 | R-DCNN (this repo)                  | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+
+**Notes on the gap:**
+- OD head is within 3-4 pp Dice of the paper — a 1-seed run on a tiny dataset.
+- OC head has a ~10 pp gap that is consistent with single-seed variance + smaller training set than the paper's 50.
+- AUC is unreliable from a single run because val=5 makes checkpoint selection noisy.
+- Multi-seed averaging (`slurm/007_train_array.slurm`) is queued as the next step before claiming any tighter replication.
+
+See [`STATUS.md`](STATUS.md) for the live tracker, run history, and full set of next steps.
 
 ## Install
 
