@@ -1,28 +1,25 @@
 """Convert the RIM-ONE v3 release to the repo's raw schema.
 
-RIM-ONE v3 (MIAG-ULL group) ships in a few common layouts depending on which
-mirror you got it from. This adapter handles the two most common:
+Three layouts supported (auto-detected):
 
-  Layout A (original release, 'RIM-ONE r3'):
+  Layout A: original 'RIM-ONE r3' release (some mirrors)
     RIM-ONE_r3/
-      Stereo Images/             # full stereo pair PNGs
-      Expert1/
-        Disc/                    # binary OD masks
-        Cup/                     # binary OC masks
-      Expert2/                   # often present, optional
-        ...
+      Stereo Images/
+      Expert1/Disc/, Expert1/Cup/
 
-  Layout B (repackaged 'RIM-ONE DL' release on the MIAG-ULL GitHub):
+  Layout B: 'RIM-ONE DL' repackaged (MIAG-ULL GitHub, 2020 release)
     RIM-ONE_DL_images/
-      partitioned_randomly/
-        training_set/{images,reference_segmentations}/
-        test_set/{images,reference_segmentations}/
+      partitioned_randomly/{training_set,test_set}/{images,reference_segmentations}/
 
-Per the R-DCNN paper, Expert 1 annotations are used. Layout A is detected by
-the presence of Expert1/. Layout B is detected by partitioned_randomly/.
+  Layout C: official 'RIM-ONE r3' (2015) — organized by class:
+    RIM-ONE r3/
+      Healthy/{Stereo Images,Expert1_masks,Expert2_masks,Average_masks}/
+      Glaucoma and suspects/{Stereo Images,Expert1_masks,...}/
+
+Per the R-DCNN paper, Expert 1 annotations are used.
 
 Output: ``data/rim_one_v3/raw/<stem>{,_od,_oc}.png`` triples that
-``scripts/preprocess.py`` understands.
+``scripts/preprocess.py`` consumes.
 
 Usage:
     python scripts/prepare_rim_one.py --source-dir <path-to-extracted-folder>
@@ -43,13 +40,15 @@ def _binarize(mask: np.ndarray) -> np.ndarray:
 
 
 def _find_root(src: Path) -> tuple[Path, str]:
-    """Return (root, layout) where layout is 'A' (original) or 'B' (DL release).
+    """Return (root, layout) — 'A', 'B', or 'C'.
 
-    Walks up to 3 levels deep to handle WinRAR-style nested extraction.
+    Walks up to ~500 dirs deep to handle WinRAR-style nested extraction.
     """
     candidates: list[Path] = [src]
-    candidates += [p for p in src.rglob("*") if p.is_dir()][:200]  # bound the search
+    candidates += [p for p in src.rglob("*") if p.is_dir()][:500]
     for c in candidates:
+        if (c / "Healthy").is_dir() and (c / "Glaucoma and suspects").is_dir():
+            return c, "C"
         if (c / "Expert1").is_dir() and (c / "Stereo Images").is_dir():
             return c, "A"
         if (c / "partitioned_randomly").is_dir():
@@ -69,7 +68,6 @@ def discover_layout_a(root: Path) -> list[tuple[str, Path, Path, Path]]:
     samples: list[tuple[str, Path, Path, Path]] = []
     for img_path in sorted(images_dir.glob("*.png")) + sorted(images_dir.glob("*.jpg")):
         stem = img_path.stem
-        # OD/OC masks may have suffix variants; try a few
         od = next(
             (
                 od_dir / f"{stem}{s}"
@@ -104,32 +102,52 @@ def discover_layout_b(root: Path) -> list[tuple[str, Path, Path, Path]]:
             continue
         for img_path in sorted(img_dir.glob("*.png")) + sorted(img_dir.glob("*.jpg")):
             stem = img_path.stem
-            # DL release names refs as <stem>.png with the disc/cup encoded as
-            # different intensity levels in a single mask, or as two separate files.
-            # Try the two common patterns.
             disc_mask = ref_dir / f"{stem}.png"
             if disc_mask.exists():
-                # Two-class mask: 0 = bg, 128 = OD-only, 255 = OC
+                # Two-class mask: bg=0, OD=128, OC=255
                 m = cv2.imread(str(disc_mask), cv2.IMREAD_GRAYSCALE)
                 if m is None:
                     continue
                 od_mask = ((m >= 128).astype(np.uint8)) * 255  # OD includes OC
                 oc_mask = ((m >= 200).astype(np.uint8)) * 255  # OC only
-                # Write to temp files in raw/ later; here we just stash arrays
-                # by writing directly in main(). Trick: encode in path tuple
-                # using a sentinel that main() recognises.
-                # Simpler: write the temp images here and return their paths.
                 tmp_od = ref_dir / f"_{stem}_od_tmp.png"
                 tmp_oc = ref_dir / f"_{stem}_oc_tmp.png"
                 cv2.imwrite(str(tmp_od), od_mask)
                 cv2.imwrite(str(tmp_oc), oc_mask)
                 samples.append((stem, img_path, tmp_od, tmp_oc))
                 continue
-            # Two-file pattern
             od = ref_dir / f"{stem}_disc.png"
             oc = ref_dir / f"{stem}_cup.png"
             if od.exists() and oc.exists():
                 samples.append((stem, img_path, od, oc))
+    return samples
+
+
+def discover_layout_c(root: Path) -> list[tuple[str, Path, Path, Path]]:
+    """RIM-ONE r3 by-class layout. Uses Expert1 masks per the paper."""
+    samples: list[tuple[str, Path, Path, Path]] = []
+    for class_dir in ("Healthy", "Glaucoma and suspects"):
+        c_dir = root / class_dir
+        if not c_dir.is_dir():
+            continue
+        img_dir = c_dir / "Stereo Images"
+        mask_dir = c_dir / "Expert1_masks"
+        if not img_dir.is_dir() or not mask_dir.is_dir():
+            print(f"  skip {class_dir}: no Stereo Images/ or Expert1_masks/", file=sys.stderr)
+            continue
+        for img_path in sorted(img_dir.glob("*.jpg")) + sorted(img_dir.glob("*.png")):
+            stem = img_path.stem
+            od = mask_dir / f"{stem}-1-Disc-exp1.png"
+            oc = mask_dir / f"{stem}-1-Cup-exp1.png"
+            if not od.exists() or not oc.exists():
+                alt_od = mask_dir / f"{stem}-Disc-exp1.png"
+                alt_oc = mask_dir / f"{stem}-Cup-exp1.png"
+                if alt_od.exists() and alt_oc.exists():
+                    od, oc = alt_od, alt_oc
+                else:
+                    print(f"  skip {stem}: no Expert1 OD/OC pair", file=sys.stderr)
+                    continue
+            samples.append((stem, img_path, od, oc))
     return samples
 
 
@@ -145,7 +163,6 @@ def main() -> int:
         "--out",
         type=Path,
         default=Path("data/rim_one_v3/raw"),
-        help="Where to write the <stem>{,_od,_oc}.png triples",
     )
     args = ap.parse_args()
 
@@ -160,7 +177,12 @@ def main() -> int:
         return 3
     print(f"detected layout {layout} at {root}")
 
-    samples = discover_layout_a(root) if layout == "A" else discover_layout_b(root)
+    if layout == "A":
+        samples = discover_layout_a(root)
+    elif layout == "B":
+        samples = discover_layout_b(root)
+    else:  # "C"
+        samples = discover_layout_c(root)
 
     if not samples:
         print(f"!! no usable samples found under {root}", file=sys.stderr)

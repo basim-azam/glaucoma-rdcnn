@@ -29,7 +29,7 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained twice on Spartan
 | 6. **Real training (1st run, 35 train images)** | ✅ done | Job 24557959 — OD Dice 93.59%, OC Dice 84.11% on 51-image test |
 | 7. **Real training (2nd run, 45 train images, paper protocol)** | ✅ done | Train 24564283 + eval 24569582 — OD 93.77% / OC 83.80% on 51-test |
 | 8. **Paper-exact 50/51 + multi-seed sweep** | ✅ done | Train 24570666 (best 93.95% OD / 83.84% OC) + array 24570667_[1-6] (mean 87.78 ± 2.78% OD / 79.08 ± 2.27% OC over 6 runs) |
-| 8. RIM-ONE v3 | ⏳ in progress | Adapter `scripts/prepare_rim_one.py` written + `slurm/002` extended for `rim_one_v3` arg. Waiting on dataset download. |
+| 8. RIM-ONE v3 | ⏳ in progress | Adapter `scripts/prepare_rim_one.py` written (3 layouts incl. official 2015 r3) + `slurm/002` extended for `rim_one_v3` arg. Locally verified: 159 triples extracted (85 healthy + 74 glaucoma, Expert1 masks). Pending: rsync to Spartan + train/eval. |
 | 9. Multi-seed averaging | ⬜ planned | Use `slurm/007_train_array.slurm` |
 | 10. README results table | ⬜ blocked on (7) | Will fill after eval2 |
 | 11. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work |
