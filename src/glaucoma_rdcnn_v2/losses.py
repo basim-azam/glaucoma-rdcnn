@@ -101,9 +101,9 @@ class CompoundSegLoss(nn.Module):
 
     def __init__(
         self,
-        w_dice: float = 0.4,
-        w_focal_tversky: float = 0.3,
-        w_boundary: float = 0.2,
+        w_dice: float = 0.5,
+        w_focal_tversky: float = 0.4,
+        w_boundary: float = 0.0,
         w_ce: float = 0.1,
         w_heteroscedastic: float = 0.0,  # off by default; trainer enables
         focal_tversky_alpha: float = 0.7,
