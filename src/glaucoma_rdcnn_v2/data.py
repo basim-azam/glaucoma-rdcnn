@@ -2,8 +2,8 @@
 
 Reuses the preprocessed outputs of the existing R-DCNN pipeline:
   data/<dataset>/images/<stem>.png       (CLAHE + 800x800 ROI-cropped fundus)
-  data/<dataset>/masks/<stem>_od.png     (binary OD mask)
-  data/<dataset>/masks/<stem>_oc.png     (binary OC mask)
+  data/<dataset>/masks/od/<stem>.png     (binary OD mask)
+  data/<dataset>/masks/oc/<stem>.png     (binary OC mask)
   data/<dataset>/splits/official.json    {"train": [...], "val": [...], "test": [...]}
 
 For v2 we resize the 800x800 inputs to:
@@ -105,8 +105,8 @@ class FundusSegDataset(Dataset):
         for stem in self.stems:
             if (
                 (self.images_dir / f"{stem}.png").exists()
-                and (self.masks_dir / f"{stem}_od.png").exists()
-                and (self.masks_dir / f"{stem}_oc.png").exists()
+                and (self.masks_dir / "od" / f"{stem}.png").exists()
+                and (self.masks_dir / "oc" / f"{stem}.png").exists()
             ):
                 keep.append(stem)
         if len(keep) != len(self.stems):
@@ -120,8 +120,8 @@ class FundusSegDataset(Dataset):
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         stem = self.stems[idx]
         img = _imread_rgb(self.images_dir / f"{stem}.png")
-        od = _imread_mask(self.masks_dir / f"{stem}_od.png")
-        oc = _imread_mask(self.masks_dir / f"{stem}_oc.png")
+        od = _imread_mask(self.masks_dir / "od" / f"{stem}.png")
+        oc = _imread_mask(self.masks_dir / "oc" / f"{stem}.png")
 
         if self.augment:
             img, od, oc = _augment(img, od, oc, self.rng)
