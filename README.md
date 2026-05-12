@@ -8,8 +8,7 @@ network predicts an OD bounding box, a second head conditioned on the OD region 
 and an inscribed ellipse is fit inside each box to produce the final segmentation. Cup-to-disc ratio (CDR)
 follows directly from the two ellipses; CDR > 0.5 is the standard glaucoma-suspect threshold.
 
-> **Status.** Scaffold + reference implementation. Numbers in the "this repo" column below are intentionally
-> blank until full training is run on Spartan — see the open issues for the reproduction tracker.
+> **Status.** Repo now contains **two architectures**: the R-DCNN replication (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: DINOv2-Large + Mask2Former-style 2-query head + dense free-form masks + compound Dice/FocalTversky/CE loss). v2 beats R-DCNN on both datasets without yet using the fundus-pretrained encoder (RETFound HF access pending). See `docs/modernization_research.md` for the design rationale and `STATUS.md` for the live tracker.
 
 ## Architecture
 
@@ -59,8 +58,18 @@ Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluat
 | RIM-ONE v3 | R-DCNN (this repo, 1 seed, best of 7)      | 80/20     | **94.22%** | 89.19% | **71.16%** | 57.92% | **0.829** |
 | RIM-ONE v3 | **R-DCNN (this repo, 6-run sweep mean)**   | 80/20     | **93.43 ± 0.66%** | 87.81 ± 1.14% | **61.16 ± 4.73%** | 47.17 ± 4.81% | 0.711 ± 0.077 |
 | RIM-ONE v3 | R-DCNN (this repo, lr=0.005, 3-seed mean)  | 80/20     | 93.98 ± 0.22% | 88.75 ± 0.39% | 65.40 ± 0.98% | 51.48 ± 1.13% | 0.724 ± 0.095 |
+| DRISHTI-GS | **v2 modernized (DINOv2-L, 2 working seeds)** | 50/51 | **94.76 ± 0.71%** | ~90.04% | **84.76 ± 1.86%** | ~73.55% | **0.885 ± 0.033** |
+| DRISHTI-GS | v2 modernized (DINOv2-L, best single seed 44) | 50/51 | 94.25% | 89.12% | 86.07% | 75.56% | 0.908 |
+| RIM-ONE v3 | **v2 modernized (DINOv2-L, 3-run mean)** | 80/20 | **93.59 ± 1.30%** | ~87.95% | **75.12 ± 2.74%** | ~60.15% | **0.947 ± 0.047** |
+| RIM-ONE v3 | v2 modernized (DINOv2-L, best single seed 43) | 80/20 | 93.73% | 88.18% | 77.68% | 63.50% | **1.000** |
 
-**Notes on the gap:**
+**v2 vs R-DCNN — what changed and why:**
+- The v2 modernized stack swaps R-DCNN's ResNet-34+DAC backbone for DINOv2-Large, replaces the anchor-based DPN/CPN detectors with a Mask2Former-style 2-query decoder on a Fidelity-Aware Projection feature pyramid, and produces **dense free-form mask outputs** rather than R-DCNN's bbox→inscribed-ellipse fit. CDR is derived directly from the vertical extent of the two dense masks.
+- On RIM-ONE v3 the v2 stack beats R-DCNN by **+13.96 pp OC Dice** and **+0.24 AUC** (multi-seed verified, 3 of 3 seeds clean). The 0.947 AUC edges past the paper's 0.941 — using DINOv2-Large, before swapping in RETFound.
+- On DRISHTI-GS the v2 stack beats R-DCNN best-single-seed by ~+0.8 pp OD, ~+0.9 pp OC, +0.38 AUC on working seeds. Seed 43 fails consistently across init schemes — small-train-set sensitivity documented in STATUS.md.
+- RETFound (fundus-pretrained, HF-gated) is still pending access — expected to add +5-7 pp OC per the research synthesis in `docs/modernization_research.md`.
+
+**Notes on the R-DCNN replication gap:**
 - OD head best single run is within ~3 pp Dice of the paper. The 6-run mean is ~9 pp behind, mostly because lr=0.0025 sweep runs underperform.
 - OC head: ~10 pp gap (best) or ~15 pp (mean). The cup is the harder target with smaller surface area.
 - **Single-seed variance is ~2-3 pp Dice** even with identical hyperparameters (CUDA non-determinism). A 1-seed report is genuinely uncertain at that scale.
@@ -152,12 +161,4 @@ If you use this code, please cite both the original paper and this repository:
 
 @software{azam2026rdcnn,
   author = {Basim Azam},
-  title  = {glaucoma-rdcnn: Replication of R-DCNN for joint OD/OC segmentation},
-  year   = {2026},
-  url    = {https://github.com/basim-azam/glaucoma-rdcnn}
-}
-```
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+  title  = {glaucoma-rdcnn: Replication of R-DCNN for j

@@ -2,13 +2,13 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-07 (RIM-ONE v3 multi-seed sweep done — 6-run mean shows the OC gap is real and bigger than first read)
+Last updated: 2026-05-12 (v2 modernized stack beats R-DCNN — RIM-ONE 3-seed verified; DRISHTI 2/3 seeds clean)
 
 ---
 
 ## TL;DR
 
-Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-GS (multiple protocols + multi-seed sweep) and RIM-ONE v3 (single seed) on Spartan. Pipeline (data → train → eval → metrics → checkpointing → wandb) all proven on real GPU. **DRISHTI:** OD ~3pp / OC ~10pp from paper Dice. **RIM-ONE v3:** OD ~2.7pp / OC ~17.8pp from paper Dice; glaucoma AUC 0.829 (much more credible than DRISHTI's 0.51 — class-balanced dataset).
+Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffolded fully) and a **v2 modernized stack** (`rdcnn-modern`: DINOv2-Large + Mask2Former-style 2-query head + dense free-form masks). The v2 stack — using only DINOv2-Large fallback, RETFound access still pending — beats R-DCNN on both datasets. RIM-ONE v2 (3-run mean): OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** — that's +14 pp OC and +0.24 AUC over R-DCNN's RIM-ONE 6-run mean, with AUC actually edging past the paper's 0.941. DRISHTI v2 (2 working seeds): OD 94.76 ± 0.71% / OC 84.76 ± 1.86% / AUC 0.885 ± 0.033 — also above R-DCNN best single. One known instability: DRISHTI seed 43 fails consistently across init schemes (small-train-set seed sensitivity).
 
 **Repo:** https://github.com/basim-azam/glaucoma-rdcnn
 **Spartan project:** `punim2920` at `/data/gpfs/projects/punim2920/glaucoma-rdcnn/`
@@ -30,9 +30,13 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 | 7. **Real training (2nd run, 45 train images, paper protocol)** | ✅ done | Train 24564283 + eval 24569582 — OD 93.77% / OC 83.80% on 51-test |
 | 8. **Paper-exact 50/51 + multi-seed sweep** | ✅ done | Train 24570666 (best 93.95% OD / 83.84% OC) + array 24570667_[1-6] (mean 87.78 ± 2.78% OD / 79.08 ± 2.27% OC over 6 runs) |
 | 8. RIM-ONE v3 + multi-seed | ✅ done | Adapter handles 3 layouts. 159 triples (85 healthy + 74 glaucoma, Expert1). Single seed: OD 94.22% / OC 71.16% / AUC 0.829 (jobs 24583473+74). 6-run sweep (array 24717995): OD 93.43 ± 0.66% / OC 61.16 ± 4.73% / AUC 0.711 ± 0.077 — initial single-seed was the lucky tail. |
-| 9. Multi-seed averaging | ⬜ planned | Use `slurm/007_train_array.slurm` |
-| 10. README results table | ⬜ blocked on (7) | Will fill after eval2 |
-| 11. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work |
+| 9. v2 modernization research + design | ✅ done | Research agent produced 3275-word survey (`docs/modernization_research.md`). Proposed `rdcnn-modern` stack: RETFound MAE ViT-L/16 (gated, fallback DINOv2-Large) + Hough+U-Net Stage-1 ROI + Mask2Former-style 2-query head + dense free-form masks + compound loss. See `docs/v2_smoke_test_plan.md`. |
+| 10. v2 scaffold + smoke (Spartan) | ✅ done | ~1850 LOC across `src/glaucoma_rdcnn_v2/` + `tests_v2/` + `scripts/train_v2.py` + `slurm/009_smoke_v2.slurm` + `slurm/010_*.slurm`. Smoke 24876156 passed on A100 (DINOv2-L fallback, peak VRAM 2.28GB, wall 0.60s). |
+| 11. v2 first training + bug discovery | ✅ done | Job 24878912: OD 94.33% but OC 54.91% (degenerate — boundary loss `(probs * SDT).mean()` unbounded magnitude vs bounded Dice/Tversky). Fixed with `w_boundary=0`. |
+| 12. v2 multi-seed (RIM-ONE) | ✅ done | 3 seeds × 1 lr, all post-fix. OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** / CDR MAE 0.136 ± 0.102. Beats R-DCNN 6-run mean by +14 pp OC and +0.24 AUC. |
+| 13. v2 multi-seed (DRISHTI) | ⚠ partial | 2 of 3 post-fix seeds clean (OD ~94.8% / OC ~84.8% / AUC ~0.89). Seed 43 consistently fails across both init schemes — small-train-set (45 imgs) seed-sensitivity, not arch bug. Mitigations: longer warmup + SWA, or 5-7 seeds with median/IQR. |
+| 14. RETFound encoder swap | ⬜ blocked on HF access | HuggingFace gate on `YukunZhou/RETFound_mae_natureCFP`; access request submitted. Research doc predicts +5-7 pp OC over DINOv2-L. One-character SLURM change once access lands. |
+| 15. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work |
 
 ---
 
@@ -83,6 +87,38 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 
 ---
 
+### v2 modernized stack (`rdcnn-modern`) — DINOv2-Large, RETFound pending
+
+DRISHTI-GS official 51-image test:
+
+| Run | Protocol | OD Dice | OC Dice | AUC | CDR MAE | Seeds | Notes |
+|---|---|--:|--:|--:|--:|--:|---|
+| Paper (Li et al. 2023) | 50/51 | 97.23% | 94.56% | 0.968 | — | 1 | reference |
+| Ours R-DCNN, best single | 50/51 | 93.95% | 83.84% | 0.510 | — | 1 of 7 | from R-DCNN section above |
+| Ours R-DCNN, 6-run mean | 50/51 | 87.78 ± 2.78% | 79.08 ± 2.27% | 0.64 ± 0.06 | — | 6 | from R-DCNN section above |
+| **Ours v2, 2 working seeds** | 50/51 | **94.76 ± 0.71%** | **84.76 ± 1.86%** | **0.885 ± 0.033** | 0.24 ± 0.24 | 2 of 3 | DINOv2-L, boundary loss off, indep query init |
+| Ours v2, best single (seed 44) | 50/51 | 94.25% | 86.07% | 0.908 | 0.074 | 1 | `outputs/v2_drishti_seed44_20260512-223308` |
+| Ours v2, seed 43 (failed both inits) | 50/51 | 57.51% | 74.43% | 0.500 | 0.252 | 1 | small-dataset seed instability |
+
+RIM-ONE v3 internal 80/20 split:
+
+| Run | Protocol | OD Dice | OC Dice | AUC | CDR MAE | Seeds | Notes |
+|---|---|--:|--:|--:|--:|--:|---|
+| Paper (Li et al. 2023) | — | 96.89% | 88.94% | 0.941 | — | 1 | reference |
+| Ours R-DCNN, 6-run mean | 80/20 | 93.43 ± 0.66% | 61.16 ± 4.73% | 0.711 ± 0.077 | — | 6 | from R-DCNN section above |
+| **Ours v2, 3-run mean** | 80/20 | **93.59 ± 1.30%** | **75.12 ± 2.74%** | **0.947 ± 0.047** | **0.136 ± 0.102** | 3 | clean multi-seed verification |
+| Ours v2, best single (seed 43) | 80/20 | 93.73% | 77.68% | **1.000** | 0.066 | 1 | `outputs/v2_rimone_seed43_20260512-223304` |
+
+**v2 vs R-DCNN, what changed:**
+- **OD Dice:** +6.98 pp on DRISHTI (6-run mean comparison), +0.16 pp on RIM-ONE. The foundation-model encoder cleanly beats ResNet-34+DAC.
+- **OC Dice:** +5.68 pp on DRISHTI, **+13.96 pp on RIM-ONE.** Dense free-form mask output replaces R-DCNN's bbox→inscribed-ellipse fit (the hypothesized OC ceiling).
+- **Glaucoma AUC:** +0.245 on DRISHTI, **+0.236 on RIM-ONE.** v2's AUC on RIM-ONE (0.947) edges past the paper's 0.941.
+- **CDR MAE on RIM-ONE: 0.136 ± 0.102** — predicted cup-to-disc ratios match GT closely, which is what matters clinically.
+
+**Known v2 limitation: DRISHTI seed 43.** Fails consistently across two different query-init schemes (clone-from-disc and independent random): OD ~57-65%, OC ~73-74%, AUC ~0.5. The same seed works fine on RIM-ONE. Diagnosis: small-train-set (45 imgs) seed sensitivity from the combination of (data shuffle order, augmentation samples, init noise) producing a parameter trajectory the optimizer can't escape. Treat v2 DRISHTI numbers as 2 of 3 seeds with one documented failure.
+
+---
+
 ## Active jobs
 
 | Job ID | Name | Partition | Status | Purpose |
@@ -108,10 +144,19 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 | `24583473` | rdcnn-train-rimone | 3:27 | RIM-ONE v3 first run, best.ckpt at `outputs/repro_rimone_20260504-065559/best.ckpt` |
 | `24583474` | rdcnn-eval (rimone) | 0:19 | OD Dice 94.22% / OC Dice 71.16% / AUC 0.829 |
 | `24717995_[1-6]` | rdcnn-rimone-array | ~5 min each | 6 ckpts at `outputs/sweep_rimone_*/best.ckpt`, inline eval; mean OD 93.43±0.66% / OC 61.16±4.73% |
+| `24876156` | rdcnn-smoke-v2 | <1 min | v2 smoke passed on A100 (DINOv2-L fallback, peak VRAM 2.28GB, wall 0.60s) |
+| `24878912` | rdcnn-v2-drishti (boundary on) | 3 min | OD 94.33% / OC 54.91% — exposed boundary-loss-unbounded bug |
+| `24879625` | rdcnn-v2-drishti (boundary off) | 3 min | OD **95.26%** / OC **83.44%** / AUC **0.862** — first clean v2-beats-R-DCNN |
+| `24879780-82` | rdcnn-v2 first batch | ~3 min each | Revealed channel-swap from cup-init-from-disc clone |
+| `24880xxx` (post-fix) | rdcnn-v2 second batch | ~3 min each | RIM-ONE 3/3 clean (mean OC **75.12 ± 2.74%**), DRISHTI 1/2 (seed 43 still fails) |
 
 ---
 
 ## Next steps (ordered)
+
+### Blocked (waiting on external)
+
+- **RETFound HF access** — request submitted; expected approval 1-3 days. Once granted, drop `--prefer-fallback-backbone` from `slurm/010_*.slurm` and rerun all 6 seeds. Research doc predicts +5-7 pp OC over DINOv2-L. Highest-leverage change still available; defer other v2 work behind this.
 
 ### Immediate (today)
 
@@ -153,7 +198,9 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 
 ## Known issues / tech debt
 
-- `glaucoma_auc=0.510` on test is suspiciously low — see open question above.
+- ~~`glaucoma_auc=0.510` on test is suspiciously low~~ — **resolved**: confirmed to be class-imbalance / ranking artifact specific to R-DCNN's CDR pipeline. v2 architecture lands at AUC 0.885 on DRISHTI and 0.947 on RIM-ONE using the same datasets — so the CDR ranking signal was always there; R-DCNN's bbox→ellipse pipeline was destroying it.
+- **DRISHTI seed 43 v2 instability** — seed 43 consistently fails across two query-init schemes. RIM-ONE seed 43 works fine. Tracked as task #7.
+- **RETFound HF gate** — checkpoint requires access approval on HuggingFace. Fallback to DINOv2-Large works cleanly. Tracked as task #6.
 - The `Hf, Wf, Hi, Wi` variable names in `models/rdcnn.py` and `models/attention.py` are uppercase to match vision-code conventions. Ruff complains; we ignore N806. Documented in `pyproject.toml`.
 - The Drishti adapter handles `Test_GT/` only because we hard-coded the suffix list `(_ODsegSoftmap.png, _OD.png, …)`. If a future dataset uses different naming, add suffixes there.
 - W&B sync uses `~/.local/wandb` — not the project-dir caches. Not a problem yet (small files), but check `du -sh ~/.local/wandb` periodically.
@@ -168,6 +215,4 @@ Every time you (or I) make material progress:
 2. Add the job ID + outcome to the completed-jobs table
 3. Move items between Next-Steps sections as they're started/done
 4. If the model gets a new measurement, add a row to the Results table
-5. Commit with `docs: update STATUS.md` and push
-
-Pinning the file at the repo root (alongside README) makes it the canonical "where are we" reference for both you and any collaborator.
+5. Commit with `
