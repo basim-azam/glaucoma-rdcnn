@@ -91,3 +91,9 @@ pytest-cache-files-*
 *.7z
 Drishti-GS1_files/
 RIM-ONE*/
+
+# v2 smoke test debug outputs
+tests_v2/_smoke_outputs/
+
+# accidental nested clone (from a previous extraction step)
+/glaucoma-rdcnn/
