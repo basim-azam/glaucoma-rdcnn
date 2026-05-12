@@ -138,7 +138,11 @@ class Mask2FormerSegHead(nn.Module):
         # We initialize cup_query by cloning disc_query at first forward pass,
         # then they evolve independently. We need cup to be a real Parameter,
         # so we register it but copy at __init__:
-        self.query_cup = nn.Parameter(self.query_disc.detach().clone())
+        # Independent random init breaks the disc/cup symmetry. The original
+        # "init cup from disc" was a bug: identical queries with a symmetric
+        # loss had no inductive bias for channel assignment, causing seed-
+        # dependent OD/OC confusion across runs.
+        self.query_cup = nn.Parameter(torch.randn(1, 1, decoder_dim) * 0.02)
 
         self.decoder_layers = nn.ModuleList(
             [_MaskedCrossAttn(decoder_dim, num_heads=num_heads) for _ in range(num_decoder_layers)]
