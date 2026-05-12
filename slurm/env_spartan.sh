@@ -66,3 +66,6 @@ export WANDB_DIR=${PROJECT_ROOT}/outputs/wandb
 export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHONPATH:-}"
 
 echo "✓ env ready | $($PY --version) | torch $($PY -c 'import torch;print(torch.__version__)') | CUDA: $($PY -c 'import torch;print(torch.cuda.is_available())')"
+
+# Disable HF xet downloader (incompatible with current hf_xet version)
+export HF_HUB_DISABLE_XET=1

@@ -38,7 +38,6 @@ srun $PY scripts/train_v2.py \
     --base-lr 5e-4 \
     --seed "$SEED" \
     --num-workers 8 \
-    --prefer-fallback-backbone
 
 echo "=== done ==="
 ls -la "outputs/$RUN_NAME/"

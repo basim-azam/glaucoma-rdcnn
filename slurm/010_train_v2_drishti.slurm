@@ -45,7 +45,6 @@ srun $PY scripts/train_v2.py \
     --base-lr 5e-4 \
     --seed "$SEED" \
     --num-workers 8 \
-    --prefer-fallback-backbone   # use DINOv2-Large; flip when RETFound access lands
 
 echo "=== done ==="
 ls -la "outputs/$RUN_NAME/"
