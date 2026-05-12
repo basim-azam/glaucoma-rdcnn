@@ -2,7 +2,7 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-04 (RIM-ONE v3 first run done — second-dataset numbers in)
+Last updated: 2026-05-07 (RIM-ONE v3 multi-seed sweep done — 6-run mean shows the OC gap is real and bigger than first read)
 
 ---
 
@@ -29,7 +29,7 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 | 6. **Real training (1st run, 35 train images)** | ✅ done | Job 24557959 — OD Dice 93.59%, OC Dice 84.11% on 51-image test |
 | 7. **Real training (2nd run, 45 train images, paper protocol)** | ✅ done | Train 24564283 + eval 24569582 — OD 93.77% / OC 83.80% on 51-test |
 | 8. **Paper-exact 50/51 + multi-seed sweep** | ✅ done | Train 24570666 (best 93.95% OD / 83.84% OC) + array 24570667_[1-6] (mean 87.78 ± 2.78% OD / 79.08 ± 2.27% OC over 6 runs) |
-| 8. RIM-ONE v3 | ✅ done | Adapter handles 3 layouts (incl. by-class r3). 159 triples (85 healthy + 74 glaucoma, Expert1). First run: train 24583473 + eval 24583474 → OD 94.22% / OC 71.16% / AUC 0.829 (single seed, 60 ep, lr=0.005). |
+| 8. RIM-ONE v3 + multi-seed | ✅ done | Adapter handles 3 layouts. 159 triples (85 healthy + 74 glaucoma, Expert1). Single seed: OD 94.22% / OC 71.16% / AUC 0.829 (jobs 24583473+74). 6-run sweep (array 24717995): OD 93.43 ± 0.66% / OC 61.16 ± 4.73% / AUC 0.711 ± 0.077 — initial single-seed was the lucky tail. |
 | 9. Multi-seed averaging | ⬜ planned | Use `slurm/007_train_array.slurm` |
 | 10. README results table | ⬜ blocked on (7) | Will fill after eval2 |
 | 11. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work |
@@ -69,13 +69,17 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 | Run | Protocol | OD Dice | OD JC | OC Dice | OC JC | AUC | Notes |
 |---|---|--:|--:|--:|--:|--:|---|
 | Paper (Li et al. 2023) | — | 96.89% | 91.32% | 88.94% | 78.21% | 0.941 | reference |
-| **Ours, 1 seed** | 80/20 | **94.22%** | 89.19% | **71.16%** | 57.92% | **0.829** | run `repro_rimone_20260504-065559`, train 24583473 + eval 24583474 |
+| Ours, 1 seed (initial, lucky tail) | 80/20 | 94.22% | 89.19% | 71.16% | 57.92% | 0.829 | run `repro_rimone_20260504-065559` |
+| **Ours, 6-run sweep mean ± std** | 80/20 | **93.43 ± 0.66%** | 87.81 ± 1.14% | **61.16 ± 4.73%** | 47.17 ± 4.81% | **0.711 ± 0.077** | array job 24717995 (3 seeds × 2 lrs) |
+| Ours, lr=0.005, 3-seed mean | 80/20 | **93.98 ± 0.22%** | 88.75 ± 0.39% | **65.40 ± 0.98%** | 51.48 ± 1.13% | 0.724 ± 0.095 | tasks 1-3 of array 24717995 |
 
-**RIM-ONE observations:**
-- **OD gap: ~2.7 pp Dice** — same magnitude as our DRISHTI best single-seed gap. The DPN architecture transfers cleanly across datasets.
-- **OC gap: ~17.8 pp Dice** — wider than DRISHTI's 10 pp. Cup is consistently the harder head; on RIM-ONE the disparity is amplified, possibly because Expert1's cup masks are noisier than DRISHTI's softmap-based GT.
-- **Glaucoma AUC 0.829** is the most credible AUC we've measured to date (DRISHTI's 0.51 was suspect). RIM-ONE is class-balanced (85 healthy + 74 glaucoma) which helps the AUC signal.
-- **Train-vs-test slip: val OC Dice plateaued at ~75% but test came in at 71%.** No multi-seed yet — single number, expect ~2-3 pp variance based on DRISHTI sweep.
+**RIM-ONE observations (post-sweep, more reliable):**
+- **OD gap: ~3.5 pp Dice** (93.43% vs paper 96.89%). OD head is rock-stable across seeds (±0.66 pp). DPN architecture transfers cleanly.
+- **OC gap: ~27.8 pp Dice** (61.16% vs paper 88.94%) — much wider than the initial single-seed read of 17.8 pp suggested. The single 71.16% was the high tail of a noisy distribution.
+- **OC variance is severe: ±4.73 pp** across just 3 seeds × 2 lrs. DRISHTI's was ±2.27 pp. RIM-ONE has fewer training images (127 in 80/20 split vs DRISHTI's 50) and noisier Expert1 cup masks.
+- **lr=0.005 dominates lr=0.0025 by ~1.1 pp OD and ~8.5 pp OC.** Same direction as DRISHTI, bigger margin. Sticking with default.
+- **Glaucoma AUC 0.711 ± 0.077** — much more credible than DRISHTI's 0.51 ± 0.06 since RIM-ONE is class-balanced. Single 0.829 was again the lucky tail.
+- **Implication for task #13:** OC head needs work (architectural — anchors, training schedule, attention) — gap is dataset-independent and now confirmed bigger than initial single-seed reports suggested.
 
 ---
 
@@ -103,6 +107,7 @@ Repo replicates the **R-DCNN architecture** end-to-end. Trained on both DRISHTI-
 | `24578508-14` | 7 evaluations | 0:25 each | All metrics in STATUS table above |
 | `24583473` | rdcnn-train-rimone | 3:27 | RIM-ONE v3 first run, best.ckpt at `outputs/repro_rimone_20260504-065559/best.ckpt` |
 | `24583474` | rdcnn-eval (rimone) | 0:19 | OD Dice 94.22% / OC Dice 71.16% / AUC 0.829 |
+| `24717995_[1-6]` | rdcnn-rimone-array | ~5 min each | 6 ckpts at `outputs/sweep_rimone_*/best.ckpt`, inline eval; mean OD 93.43±0.66% / OC 61.16±4.73% |
 
 ---
 

@@ -56,7 +56,9 @@ Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluat
 | DRISHTI-GS | **R-DCNN (this repo, 50 train, 6-run mean)** | 50/51 | **87.78 ± 2.78%** | 79.81 ± 4.51% | **79.08 ± 2.27%** | 66.85 ± 3.55% | 0.64 ± 0.06 |
 | DRISHTI-GS | R-DCNN (this repo, lr=0.005, 3-seed mean)  | 50/51 | 89.79 ± 2.10% | — | 80.38 ± 2.54% | — | 0.66 ± 0.03 |
 | RIM-ONE v3 | R-DCNN (Li et al. 2023)                    | —         | 96.89%  | 91.32% | 88.94%  | 78.21% | 0.941        |
-| RIM-ONE v3 | R-DCNN (this repo, 1 seed)                 | 80/20     | **94.22%** | 89.19% | **71.16%** | 57.92% | **0.829** |
+| RIM-ONE v3 | R-DCNN (this repo, 1 seed, best of 7)      | 80/20     | **94.22%** | 89.19% | **71.16%** | 57.92% | **0.829** |
+| RIM-ONE v3 | **R-DCNN (this repo, 6-run sweep mean)**   | 80/20     | **93.43 ± 0.66%** | 87.81 ± 1.14% | **61.16 ± 4.73%** | 47.17 ± 4.81% | 0.711 ± 0.077 |
+| RIM-ONE v3 | R-DCNN (this repo, lr=0.005, 3-seed mean)  | 80/20     | 93.98 ± 0.22% | 88.75 ± 0.39% | 65.40 ± 0.98% | 51.48 ± 1.13% | 0.724 ± 0.095 |
 
 **Notes on the gap:**
 - OD head best single run is within ~3 pp Dice of the paper. The 6-run mean is ~9 pp behind, mostly because lr=0.0025 sweep runs underperform.
@@ -65,7 +67,7 @@ Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluat
 - **lr=0.005 beats lr=0.0025** by ~4 pp OD / ~3 pp OC consistently. Default config is well-chosen.
 - AUC has std 0.06 across seeds — single AUC numbers shouldn't be over-interpreted at this dataset size.
 - "val=test" rows have a leakage caveat: best.ckpt is selected against the test set, matching the paper's effective protocol but slightly favouring the test number.
-- **RIM-ONE v3:** OD gap is ~2.7 pp (similar magnitude to DRISHTI best), OC gap is ~17.8 pp (wider than DRISHTI). Glaucoma AUC 0.829 is much more credible here than on DRISHTI — RIM-ONE is class-balanced (85 healthy + 74 glaucoma).
+- **RIM-ONE v3 (single seed read was misleading):** Initial 1-seed run showed OC 71.16% but the 6-run sweep mean is 61.16 ± 4.73% — the original number was the lucky tail. Real OD gap is ~3.5 pp; real OC gap is ~27.8 pp. OC variance on RIM-ONE (±4.73 pp) is twice DRISHTI's (±2.27 pp), reflecting fewer training images and noisier Expert1 cup masks. AUC 0.711 ± 0.077 is still credible (class-balanced dataset).
 
 See [`STATUS.md`](STATUS.md) for the live tracker, full run history, learning-rate breakdown, and next steps.
 
