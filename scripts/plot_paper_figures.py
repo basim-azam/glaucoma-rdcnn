@@ -2,9 +2,9 @@
 
 Run after scripts/fetch_from_spartan.sh / .ps1. Produces:
 
-  paper/accv/figures/fig3_ablation_bar.pdf      — per-component contribution
-  paper/accv/figures/fig5_roc_curves.pdf         — glaucoma ROC for both datasets
-  paper/accv/figures/fig6_cdr_scatter.pdf        — predicted-vs-true CDR scatter
+  paper/accv/figures/fig2_ablation_bar.pdf      — per-component contribution
+  paper/accv/figures/fig6_roc_curves.pdf         — glaucoma ROC for both datasets
+  paper/accv/figures/fig8_cdr_scatter.pdf        — predicted-vs-true CDR scatter
   paper/accv/figures/fig7_gcvr_effect.pdf        — CDR MAE before/after GCvR
 
 The qualitative figure (Fig. 4) is rendered by scripts/make_qualitative_figure.py
@@ -80,9 +80,9 @@ def fig3_ablation_bar():
                  f"{val:.3f}", ha="center", va="bottom", fontsize=8)
 
     plt.tight_layout()
-    fig.savefig(OUT_DIR / "fig3_ablation_bar.pdf")
+    fig.savefig(OUT_DIR / "fig2_ablation_bar.pdf")
     plt.close(fig)
-    print(f"  wrote {OUT_DIR / 'fig3_ablation_bar.pdf'}")
+    print(f"  wrote {OUT_DIR / 'fig2_ablation_bar.pdf'}")
 
 
 # =============================================================================
@@ -141,9 +141,9 @@ def fig5_roc_curves():
     ax[1].legend(loc="lower right"); ax[1].set_xlim(0, 1); ax[1].set_ylim(0, 1.02)
 
     plt.tight_layout()
-    fig.savefig(OUT_DIR / "fig5_roc_curves.pdf")
+    fig.savefig(OUT_DIR / "fig6_roc_curves.pdf")
     plt.close(fig)
-    print(f"  wrote {OUT_DIR / 'fig5_roc_curves.pdf'}")
+    print(f"  wrote {OUT_DIR / 'fig6_roc_curves.pdf'}")
 
 
 # =============================================================================
@@ -185,9 +185,9 @@ def fig6_cdr_scatter():
     ax.set_aspect("equal")
 
     plt.tight_layout()
-    fig.savefig(OUT_DIR / "fig6_cdr_scatter.pdf")
+    fig.savefig(OUT_DIR / "fig8_cdr_scatter.pdf")
     plt.close(fig)
-    print(f"  wrote {OUT_DIR / 'fig6_cdr_scatter.pdf'}")
+    print(f"  wrote {OUT_DIR / 'fig8_cdr_scatter.pdf'}")
 
 
 # =============================================================================

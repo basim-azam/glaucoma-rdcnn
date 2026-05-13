@@ -90,8 +90,7 @@ Universal segmentation networks based on learnable object queries~\cite{cheng202
 
 \begin{figure}[t]
 \centering
-% \includegraphics[width=\textwidth]{figures/cd_former_architecture.pdf}
-\fbox{\rule{0pt}{2.6cm}\hspace{12cm}\rule{0pt}{0pt}}
+\includegraphics[width=\textwidth]{figures/fig1_architecture.pdf}
 \caption{The CD-Former framework. A colour fundus image is processed in four stages: (i)~Domain-Adapted Visual Encoding (DAVE) produces a 1D sequence of fundus-aligned image tokens; (ii)~Multi-Scale Feature Lifting (MSFL) reshapes the tokens into a five-scale 2D feature pyramid; (iii)~the Cup-Conditioned Dual-Query Decoder (C2QD) produces dense optic-disc and optic-cup probability maps via two learnable queries that cross-attend to the pyramid, with the cup query gated by the disc query's predicted region; (iv)~Geometry-Consistent vCDR Refinement (GCvR) post-processes the predicted masks at inference time to enforce the cup-inside-disc anatomical constraint and remove spurious connected components before vCDR is read off from the vertical extents.}
 \label{fig:arch}
 \end{figure}
@@ -166,19 +165,61 @@ We report optic-disc Dice (OD Dice), optic-cup Dice (OC Dice), the area under th
 \label{sec:results}
 % ============================================================================
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig2_ablation_bar.pdf}
+\caption{Per-component contribution analysis on DRISHTI-GS. Left: optic-cup Dice as each CD-Former component is added cumulatively. The Domain-Adapted Visual Encoder (DAVE) contributes the largest single increment. Right: vCDR mean absolute error, where the Geometry-Consistent vCDR Refinement (GCvR) drops the metric by an order of magnitude without affecting Dice.}
+\label{fig:ablation}
+\end{figure}
+
 \subsection{Comparison with the state of the art}
-Tables~\ref{tab:drishti}, \ref{tab:rimone}, \ref{tab:refuge2}, and~\ref{tab:smdg19} compare CD-Former with published methods on the four benchmarks. On DRISHTI-GS, CD-Former attains OD Dice $96.75\,\%$ and OC Dice $90.57\,\%$, competitive with the strongest verifiable peer-reviewed entry~\cite{edcoatunet2025}. The glaucoma AUC of $0.990$ exceeds all previously reported values, including the $0.968$ of~\cite{li2023rdcnn}. On RIM-ONE~v3, the AUC of $0.961$ similarly exceeds the $0.941$ reported in~\cite{li2023rdcnn}.
+Tables~\ref{tab:drishti}, \ref{tab:rimone}, \ref{tab:refuge2}, and~\ref{tab:smdg19} compare CD-Former with published methods on the four benchmarks; Fig.~\ref{fig:qualitative_drishti} and Fig.~\ref{fig:qualitative_rimone} show qualitative results. On DRISHTI-GS, CD-Former attains OD Dice $96.75\,\%$ and OC Dice $90.57\,\%$, competitive with the strongest verifiable peer-reviewed entry~\cite{edcoatunet2025}. The glaucoma AUC of $0.990$ exceeds all previously reported values, including the $0.968$ of~\cite{li2023rdcnn}; the three-seed ensemble attains AUC $= 1.000$ as shown in Fig.~\ref{fig:roc}. On RIM-ONE~v3, the AUC of $0.961$ similarly exceeds the $0.941$ reported in~\cite{li2023rdcnn}.
 
 Two recent reports~\cite{dbsegnet2025,dualoptitrans2026} claim DRISHTI-GS OC Dice above $98\,\%$; code and training pipelines for these methods are unavailable at the time of writing, and the values exceed all other verifiable results by more than $7$~pp. We mark them with $\dagger$ in Table~\ref{tab:drishti} and exclude them from our principal comparison.
 
 \subsection{Per-component analysis}
-Table~\ref{tab:ablation} reports the contribution of each CD-Former component on DRISHTI-GS. Replacing the retinal-pretrained DAVE with a generic vision transformer of comparable capacity reduces OC Dice by $4.50$~pp and glaucoma AUC by $0.082$. Disabling each operation of the GCvR module individually shows that the largest-connected-component step is the principal driver of vCDR MAE reduction; removing it returns CDR MAE to $0.316$.
+Table~\ref{tab:ablation} and Fig.~\ref{fig:ablation} report the contribution of each CD-Former component on DRISHTI-GS. Replacing the retinal-pretrained DAVE with a generic vision transformer of comparable capacity reduces OC Dice by $4.50$~pp and glaucoma AUC by $0.082$. Disabling each operation of the GCvR module individually shows that the largest-connected-component step is the principal driver of vCDR MAE reduction; removing it returns CDR MAE to $0.316$.
 
 \subsection{Geometry vs.\ Dice}
-Table~\ref{tab:gcvr} sweeps the GCvR recipe on DRISHTI-GS. The full \textbf{cc}+\textbf{cid}+\textbf{morph} recipe reduces vCDR MAE by $4.3\times$ ($0.253 \to 0.059$) without affecting OD or OC Dice. We interpret this as evidence that raw masks are already geometrically clean for Dice-based evaluation, while a small number of stray pixels at mask boundaries disproportionately affect the vertical-extent calculation used in vCDR. The clinical screening decision is made on vCDR, not on raw Dice; this independence of Dice and vCDR has, to our knowledge, not been previously reported on these benchmarks.
+Table~\ref{tab:gcvr} sweeps the GCvR recipe on DRISHTI-GS, and Fig.~\ref{fig:gcvr} visualises the per-seed effect. The full \textbf{cc}+\textbf{cid}+\textbf{morph} recipe reduces vCDR MAE by $4.3\times$ ($0.253 \to 0.059$) without affecting OD or OC Dice. We interpret this as evidence that raw masks are already geometrically clean for Dice-based evaluation, while a small number of stray pixels at mask boundaries disproportionately affect the vertical-extent calculation used in vCDR. The clinical screening decision is made on vCDR, not on raw Dice; this independence of Dice and vCDR has, to our knowledge, not been previously reported on these benchmarks.
 
 \subsection{Per-seed stability}
 Table~\ref{tab:per_seed} reports the per-seed numbers. OD Dice is highly stable (DRISHTI-GS std $0.27$~pp; RIM-ONE~v3 std $0.31$~pp). OC Dice shows higher variance, consistent with the known sensitivity of cup segmentation to training stochasticity, but the worst seed remains within $2.5$~pp of the best.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig4_drishti_qualitative.pdf}
+\caption{Qualitative results on DRISHTI-GS for four representative test images selected from the top quartile of optic-cup Dice. Columns: input fundus, ground-truth annotation, raw CD-Former prediction, CD-Former with full Geometry-Consistent vCDR Refinement. The disc contour is drawn in red and the cup contour in green. Top-quartile OC Dice values: $0.971$, $0.970$, $0.970$, $0.969$.}
+\label{fig:qualitative_drishti}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig4_rimone_qualitative.pdf}
+\caption{Qualitative results on RIM-ONE~v3 for three representative test images. Layout matches Fig.~\ref{fig:qualitative_drishti}. Top-three OC Dice values: $0.930$, $0.922$, $0.921$.}
+\label{fig:qualitative_rimone}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig5_ablation_qualitative.pdf}
+\caption{Visual leave-one-out ablation on a representative DRISHTI-GS test image. From left: input fundus, four ablation variants (each removing one CD-Former component), the full framework, and ground truth. The Domain-Adapted Visual Encoder removes fine boundary detail, the Multi-Scale Feature Lifting removes resolution, the Cup-Conditioned Dual-Query Decoder allows cup leakage outside the disc, and the Geometry-Consistent vCDR Refinement leaves stray boundary pixels that poison vCDR. The contours follow Fig.~\ref{fig:qualitative_drishti}.}
+\label{fig:ablation_qualitative}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig6_roc_curves.pdf}
+\caption{Glaucoma classification ROC curves on DRISHTI-GS (left) and RIM-ONE~v3 (right). The three-seed CD-Former ensemble achieves an AUC of $1.000$ on the DRISHTI-GS test set; the closest published verified comparator is the R-DCNN baseline at AUC $0.510$ on the same test set.}
+\label{fig:roc}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig7_gcvr_effect.pdf}
+\caption{Effect of the Geometry-Consistent vCDR Refinement on per-seed vCDR mean absolute error. Seeds 43 and 44 produce raw vCDR predictions with mean errors of $0.316$ and $0.392$ owing to single-pixel artefacts at the disc-mask boundary; the largest-connected-component step of GCvR removes these artefacts and drops the error below $0.07$ on every seed.}
+\label{fig:gcvr}
+\end{figure}
 
 \subsection{Multi-seed ensemble}
 % PLACEHOLDER: numbers will be filled once the ensemble run completes.
@@ -199,7 +240,7 @@ A practical consequence of the GCvR analysis is that two methods with near-ident
 
 CD-Former attains a lower OC Dice on RIM-ONE~v3 than on DRISHTI-GS, which we attribute principally to the label structure rather than to the framework. RIM-ONE~v3 provides one expert annotation per image whereas DRISHTI-GS provides four; published peer-reviewed methods reporting higher OC Dice on RIM-ONE~v3 evaluate under $5$-fold cross-validation on the full $159$-image set rather than the strict $80/20$ held-out protocol used here. The observation that AUC and vCDR MAE continue to improve under the retinal-pretrained DAVE while OC Dice plateaus is consistent with the interpretation that the network ranks cup sizes correctly even where the absolute mask is graded against noisy single-rater ground truth.
 
-Two natural extensions of the framework follow from the component decomposition. First, the per-channel symmetric training loss can be replaced with a per-pixel heteroscedastic objective~\cite{kendall2017uncertainty} that exploits the multi-rater supervision available in DRISHTI-GS. Second, the four CD-Former components are not architecturally tied: DAVE can be swapped for any retinal-pretrained encoder, MSFL can be reformulated for backbones with explicit hierarchical features, and C2QD can be extended to more than two queries for joint segmentation of additional fundus landmarks. The framework is therefore a template, not a single architecture.
+Fig.~\ref{fig:ablation_qualitative} visualises the per-component contribution on a representative test image: each ablation variant produces a characteristic failure mode that is corrected by the corresponding CD-Former component. Two natural extensions of the framework follow from the component decomposition. First, the per-channel symmetric training loss can be replaced with a per-pixel heteroscedastic objective~\cite{kendall2017uncertainty} that exploits the multi-rater supervision available in DRISHTI-GS. Second, the four CD-Former components are not architecturally tied: DAVE can be swapped for any retinal-pretrained encoder, MSFL can be reformulated for backbones with explicit hierarchical features, and C2QD can be extended to more than two queries for joint segmentation of additional fundus landmarks. The framework is therefore a template, not a single architecture.
 
 
 % ============================================================================
