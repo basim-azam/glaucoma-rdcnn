@@ -96,17 +96,19 @@ def collect_predictions(
         feats = backbone(images)
         return head(feats.patch_features.to(dtype), grid_hw=feats.grid_hw).mask_logits
 
+    autocast_enabled = (device.type == "cuda" and dtype != torch.float32)
     out: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = []
     with torch.no_grad():
         for batch in loader:
             images = batch["image"].to(device, dtype=dtype)
             targets = batch["target"].numpy()
-            logits = fwd(images)
-            if use_tta:
-                images_f = torch.flip(images, dims=[-1])
-                logits_f = fwd(images_f)
-                logits_f = torch.flip(logits_f, dims=[-1])
-                logits = (logits.float() + logits_f.float()) / 2.0
+            with torch.autocast("cuda", dtype=dtype, enabled=autocast_enabled):
+                logits = fwd(images)
+                if use_tta:
+                    images_f = torch.flip(images, dims=[-1])
+                    logits_f = fwd(images_f)
+                    logits_f = torch.flip(logits_f, dims=[-1])
+                    logits = (logits.float() + logits_f.float()) / 2.0
             probs = torch.sigmoid(logits.float()).cpu().numpy()
             for b in range(probs.shape[0]):
                 out.append(
@@ -231,11 +233,4 @@ def main() -> int:
     )
 
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output_json, "w") as f:
-        json.dump({"results": results, "best_recipe": best_name}, f, indent=2)
-    print(f"[postproc] wrote {args.output_json}")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+  
