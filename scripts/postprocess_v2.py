@@ -232,4 +232,11 @@ def main() -> int:
     )
 
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
-  
+    with open(args.output_json, "w") as f:
+        json.dump({"results": results, "best_recipe": best_name}, f, indent=2)
+    print(f"[postproc] wrote {args.output_json}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
