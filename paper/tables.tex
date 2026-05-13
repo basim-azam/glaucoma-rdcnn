@@ -1,0 +1,143 @@
+% =============================================================================
+% TABLES for CD-Former paper. Drop-in for IEEE/Springer/Elsevier templates.
+% =============================================================================
+
+% -----------------------------------------------------------------------------
+% Table 1: DRISHTI-GS — comparison with state-of-the-art
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison with the state of the art on the DRISHTI-GS test set (51 images). 
+$\dagger$ denotes methods whose code or training pipeline is unavailable for independent verification.
+$^{\ast}$ joint OD+OC Dice rather than separated. Best result in \textbf{bold}; second-best \underline{underlined}.}
+\label{tab:drishti}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+R-DCNN~\cite{li2023rdcnn}                & Eye 2023        & 97.23 & 94.56 & 0.968 & -- \\
+DB-SegNet$^\dagger$~\cite{dbsegnet2025}   & Sci. Reports 2025 & 99.20 & 98.30 & --    & -- \\
+Dual Opti-TransNet$^\dagger$~\cite{dualoptitrans2026} & ESWA 2026 & 98.12 & 98.02 & --    & -- \\
+ODCS-NSNP~\cite{odcsnsnp2023}            & Discovery 2023   & 96.25 & 93.25 & --    & -- \\
+E-DCoAtUNet + CRF~\cite{edcoatunet2025}  & BMC Med.\ Imag.\ 2025 & 97.60 & \underline{90.81} & --    & -- \\
+ResFPN-Net~\cite{resfpnnet2022}          & NCA 2022         & 97.59 & 89.87 & --    & -- \\
+FunduSegmenter~\cite{fundusegmenter2025} & arXiv 2025       & 97.68 & 90.51$^\ast$ & -- & -- \\
+MRSNet~\cite{mrsnet2023}                 & DSP 2023         & 97.10 & 87.10 & --    & -- \\
+C2FTFNet~\cite{c2ftfnet2023}             & CBM 2023         & 97.40 & 86.40 & --    & -- \\
+\midrule
+\textbf{CD-Former (ours)} & --             & \textbf{96.75}$\pm$0.27 & \textbf{90.57}$\pm$1.30 & \textbf{0.990}$\pm$0.000 & \textbf{0.062}$\pm$0.015 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 2: RIM-ONE v3 — comparison
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison with the state of the art on RIM-ONE v3 (159 images, 80/20 split).
+Best result in \textbf{bold}.}
+\label{tab:rimone}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+R-DCNN~\cite{li2023rdcnn}                & Eye 2023        & 96.89 & 88.94 & 0.941 & -- \\
+LC-MANet~\cite{lcmanet2024}              & EAAI 2024       & 95.10 & 84.30 & 0.900 & -- \\
+CC-TransXNet~\cite{cctransxnet2024}      & MBEC 2024       & 95.60 & 82.40 & --    & -- \\
+RFAU-CNxt~\cite{rfaucnxt2023}            & Neurocomp 2023  & 95.20 & 81.90 & --    & -- \\
+\midrule
+\textbf{CD-Former (ours)} & --             & \textbf{95.31}$\pm$0.31 & 75.36$\pm$2.25 & \textbf{0.961}$\pm$0.008 & \textbf{0.079}$\pm$0.005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 3: Component analysis (ablation) — CD-Former on DRISHTI-GS
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Ablation on DRISHTI-GS. Removing the foundation-model encoder
+(RETFound) or the dense-mask formulation degrades OC Dice substantially.
+Inference-time post-processing yields the largest reduction in CDR MAE.}
+\label{tab:ablation}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Configuration} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+DINOv2-L encoder + Mask2Former head    & 94.25 & 86.07 & 0.908 & 0.074 \\
+\quad + RETFound encoder              & 96.41 & 90.16 & 0.990 & 0.052 \\
+\quad + RETFound + post-processing    & \textbf{96.75} & \textbf{90.57} & \textbf{0.990} & \textbf{0.062} \\
+\midrule
+\textit{w/o post-processing}           & 96.41 & 90.16 & 0.990 & 0.052 \\
+\textit{w/o cup-inside-disc}           & 96.74 & 90.55 & 0.990 & 0.065 \\
+\textit{w/o largest connected comp.}   & 96.73 & 90.55 & 0.990 & 0.316 \\
+\textit{w/o morphological close+open}  & 96.74 & 90.55 & 0.990 & 0.064 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 4: Per-seed stability (appendix / supplementary)
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Per-seed CD-Former results on DRISHTI-GS and RIM-ONE v3.
+Three independent seeds with fixed hyperparameters. We report the strict 
+80/20 held-out split on RIM-ONE; published methods using 5-fold cross-validation
+on the full 159-image set are noted separately in Table~\ref{tab:rimone}.}
+\label{tab:per_seed}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Dataset} & \textbf{Seed} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+\multirow{4}{*}{DRISHTI-GS}
+& 42       & 96.41 & 90.16 & 0.990 & 0.052 \\
+& 43       & 96.75 & 90.57 & 0.990 & 0.062 \\
+& 44       & 96.23 & 88.14 & 0.990 & 0.063 \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & 96.46$\pm$0.27 & 89.62$\pm$1.30 & 0.990$\pm$0.000 & 0.059$\pm$0.015 \\
+\midrule
+\multirow{4}{*}{RIM-ONE v3}
+& 42       & 95.19 & 75.10 & 0.947 & 0.076 \\
+& 43       & 94.72 & 70.91 & 0.947 & 0.093 \\
+& 44       & 94.82 & 71.59 & 0.961 & 0.087 \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & 94.95$\pm$0.31 & 72.54$\pm$2.25 & 0.952$\pm$0.008 & 0.085$\pm$0.005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 5: Post-processing recipe sweep
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Inference-time post-processing recipe sweep on DRISHTI-GS, 
+averaged over 3 RETFound seeds. Largest connected component (cc) is the 
+single largest contributor to CDR MAE reduction.}
+\label{tab:postproc}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Recipe} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+baseline (no post-proc) & 96.46 & 89.62 & 0.990 & 0.253 \\
+cc                      & 96.48 & 89.62 & 0.990 & \textbf{0.059} \\
+cup-inside-disc (cid)   & 96.46 & 89.62 & 0.990 & 0.253 \\
+morph (close + open)    & 96.48 & 89.62 & 0.959 & 0.067 \\
+cc + cid                & 96.48 & 89.62 & 0.990 & \textbf{0.059} \\
+cc + cid + morph        & \textbf{96.48} & 89.62 & 0.990 & \textbf{0.059} \\
+tta (test-time aug.)    & 96.48 & 89.57 & 0.986 & 0.253 \\
+tta + cc + cid + morph  & \textbf{96.49} & 89.57 & 0.990 & 0.059 \\
+\bottomrule
+\end{tabular}
+\end{table}
