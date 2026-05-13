@@ -42,43 +42,61 @@ def load_multi_rater_target(
     target_size: int,
     num_raters: int = 4,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Load all rater masks for one image and produce soft target + agreement.
+    """Load a soft per-rater target for one image.
+
+    Strategy (in order of preference):
+      1. Per-rater masks if extracted to data/<dataset>/masks/{od,oc}_rater{1..N}/<stem>.png
+         (not available in the public DRISHTI release).
+      2. SoftMap files at data/<dataset>/raw/<stem>_od.png and _oc.png if they
+         were saved as continuous-valued averaged-rater maps.
+      3. The standard merged mask as a single-rater fallback.
 
     Returns:
-        soft_target: (2, H, W) float32 in [0, 1] — fraction of raters who labelled each pixel as foreground.
-        agreement:   (2, H, W) float32 in [0, 1] — 1 = all raters agree (label is 0 or 1 for every rater),
-                     0 = maximum disagreement (half label 1, half label 0).
-
-    Falls back to the merged mask (raters = 1) if per-rater masks are missing.
+        soft_target: (2, H, W) float32 in [0, 1] — pixel-wise rater agreement
+                     (intermediate values = disagreement).
+        agreement:   (2, H, W) float32 in [0, 1] — 1 = unanimous, 0 = max disagreement.
     """
     root = Path(root)
     out_soft = np.zeros((2, target_size, target_size), dtype=np.float32)
     out_agreement = np.ones((2, target_size, target_size), dtype=np.float32)
 
     for ch_idx, ch_name in enumerate(("od", "oc")):
+        # ---- Strategy 1: per-rater masks ----
         rater_masks: list[np.ndarray] = []
         for r in range(1, num_raters + 1):
-            p = root / "masks" / f"{ch_name}_rater{r}" / f"{stem}.png"
-            if p.exists():
-                m = cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)
+            pth = root / "masks" / f"{ch_name}_rater{r}" / f"{stem}.png"
+            if pth.exists():
+                m = cv2.imread(str(pth), cv2.IMREAD_GRAYSCALE)
                 if m is not None:
                     m = cv2.resize(m, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
                     rater_masks.append((m > 127).astype(np.float32))
-
-        if not rater_masks:
-            # Fallback to merged mask
-            p = root / "masks" / ch_name / f"{stem}.png"
-            if p.exists():
-                m = cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)
-                m = cv2.resize(m, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
-                rater_masks.append((m > 127).astype(np.float32))
-
         if rater_masks:
             stack = np.stack(rater_masks, axis=0)
             out_soft[ch_idx] = stack.mean(axis=0)
-            # Agreement: 1 - 2 * std (so 0 raters or all raters = 1, half/half = 0)
-            std = stack.std(axis=0)
-            out_agreement[ch_idx] = (1.0 - 2.0 * std).clip(0.0, 1.0)
+            out_agreement[ch_idx] = (1.0 - 2.0 * stack.std(axis=0)).clip(0.0, 1.0)
+            continue
+
+        # ---- Strategy 2: SoftMap from raw directory ----
+        sm = root / "raw" / f"{stem}_{ch_name}.png"
+        if sm.exists():
+            m = cv2.imread(str(sm), cv2.IMREAD_GRAYSCALE)
+            if m is not None:
+                m = cv2.resize(m, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
+                soft = m.astype(np.float32) / 255.0
+                out_soft[ch_idx] = soft
+                # Agreement = 1 - 4 * soft * (1 - soft); peaks at soft=0.5 (max disagreement)
+                out_agreement[ch_idx] = (1.0 - 4.0 * soft * (1.0 - soft)).clip(0.0, 1.0)
+                continue
+
+        # ---- Strategy 3: merged mask fallback ----
+        pth = root / "masks" / ch_name / f"{stem}.png"
+        if pth.exists():
+            m = cv2.imread(str(pth), cv2.IMREAD_GRAYSCALE)
+            if m is not None:
+                m = cv2.resize(m, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
+                out_soft[ch_idx] = (m > 127).astype(np.float32)
+                # No disagreement information; uniform full confidence
+                out_agreement[ch_idx] = np.ones((target_size, target_size), dtype=np.float32)
 
     return out_soft, out_agreement
 
