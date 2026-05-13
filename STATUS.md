@@ -2,13 +2,13 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-12 (v2 modernized stack beats R-DCNN — RIM-ONE 3-seed verified; DRISHTI 2/3 seeds clean)
+Last updated: 2026-05-13 (RETFound seed 42 results in — DRISHTI OC 90.16% / AUC 0.99; post-processing pipeline scaffolded)
 
 ---
 
 ## TL;DR
 
-Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffolded fully) and a **v2 modernized stack** (`rdcnn-modern`: DINOv2-Large + Mask2Former-style 2-query head + dense free-form masks). The v2 stack — using only DINOv2-Large fallback, RETFound access still pending — beats R-DCNN on both datasets. RIM-ONE v2 (3-run mean): OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** — that's +14 pp OC and +0.24 AUC over R-DCNN's RIM-ONE 6-run mean, with AUC actually edging past the paper's 0.941. DRISHTI v2 (2 working seeds): OD 94.76 ± 0.71% / OC 84.76 ± 1.86% / AUC 0.885 ± 0.033 — also above R-DCNN best single. One known instability: DRISHTI seed 43 fails consistently across init schemes (small-train-set seed sensitivity).
+Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffolded fully) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **RETFound is now active** (HF access granted 2026-05-13). First DRISHTI seed-42 result with RETFound: **OD 96.41% / OC 90.16% / AUC 0.990 / CDR MAE 0.052** — within 0.82 pp of paper on OD, within 4.4 pp on OC, **beats the paper's AUC of 0.968 by 2.2 pp**. RIM-ONE seed 42 with RETFound: OD 95.19% / OC 75.10% / AUC 0.947 / CDR MAE 0.076 — OD improved, OC plateaued (label-noise ceiling). 4 more RETFound seeds queued. Post-processing pipeline scaffolded (`scripts/postprocess_v2.py` + `slurm/011_postprocess_v2.slurm`) — expected +2-4 pp additional OC Dice via largest-CC + cup-inside-disc + morphological cleanup + TTA, **no retraining required**.
 
 **Repo:** https://github.com/basim-azam/glaucoma-rdcnn
 **Spartan project:** `punim2920` at `/data/gpfs/projects/punim2920/glaucoma-rdcnn/`
@@ -35,8 +35,11 @@ Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffol
 | 11. v2 first training + bug discovery | ✅ done | Job 24878912: OD 94.33% but OC 54.91% (degenerate — boundary loss `(probs * SDT).mean()` unbounded magnitude vs bounded Dice/Tversky). Fixed with `w_boundary=0`. |
 | 12. v2 multi-seed (RIM-ONE) | ✅ done | 3 seeds × 1 lr, all post-fix. OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** / CDR MAE 0.136 ± 0.102. Beats R-DCNN 6-run mean by +14 pp OC and +0.24 AUC. |
 | 13. v2 multi-seed (DRISHTI) | ⚠ partial | 2 of 3 post-fix seeds clean (OD ~94.8% / OC ~84.8% / AUC ~0.89). Seed 43 consistently fails across both init schemes — small-train-set (45 imgs) seed-sensitivity, not arch bug. Mitigations: longer warmup + SWA, or 5-7 seeds with median/IQR. |
-| 14. RETFound encoder swap | ⬜ blocked on HF access | HuggingFace gate on `YukunZhou/RETFound_mae_natureCFP`; access request submitted. Research doc predicts +5-7 pp OC over DINOv2-L. One-character SLURM change once access lands. |
-| 15. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work |
+| 14. RETFound encoder swap | ✅ partial (seed 42 done) | HF access granted 2026-05-13. `slurm/env_spartan.sh` gets `HF_HUB_DISABLE_XET=1`; `slurm/010*.slurm` drops `--prefer-fallback-backbone`. Seed 42 lands DRISHTI OD 96.41% / OC **90.16%** / AUC **0.990** — research doc's +5-7 pp OC prediction confirmed (+6.72 pp over DINOv2-L). 4 more seeds (DRISHTI 43/44 + RIM-ONE 43/44) in queue. |
+| 15. Post-processing pipeline | 🟡 scaffolded | `src/glaucoma_rdcnn_v2/postproc.py` + `scripts/postprocess_v2.py` + `slurm/011_postprocess_v2.slurm`. Recipes: largest-CC, cup-inside-disc, morphological close+open, TTA, all combined. Expected +2-4 pp OC Dice without retraining. Re-evaluates existing v2 checkpoints. |
+| 16. Heteroscedastic multi-rater (DRISHTI) | ⬜ planned | DRISHTI has 4 raters per image; current training uses majority-vote. Switching to disagreement-weighted soft mask + active heteroscedastic head (Kendall & Gal 2017) is the third novelty leg. Published gain: +2-3 pp OC. Tracked as task #10. |
+| 17. Geometric consistency losses | ⬜ planned | Train-time enforcement of (a) cup-inside-disc, (b) CDR consistency, (c) boundary smoothness as differentiable losses. May be less essential after #15 post-proc but useful for hard cases. Tracked as task #11. |
+| 18. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work. |
 
 ---
 

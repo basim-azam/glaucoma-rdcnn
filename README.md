@@ -8,7 +8,7 @@ network predicts an OD bounding box, a second head conditioned on the OD region 
 and an inscribed ellipse is fit inside each box to produce the final segmentation. Cup-to-disc ratio (CDR)
 follows directly from the two ellipses; CDR > 0.5 is the standard glaucoma-suspect threshold.
 
-> **Status.** Repo now contains **two architectures**: the R-DCNN replication (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: DINOv2-Large + Mask2Former-style 2-query head + dense free-form masks + compound Dice/FocalTversky/CE loss). v2 beats R-DCNN on both datasets without yet using the fundus-pretrained encoder (RETFound HF access pending). See `docs/modernization_research.md` for the design rationale and `STATUS.md` for the live tracker.
+> **Status.** Repo now contains **two architectures**: the R-DCNN replication (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). RETFound is now active (HF access granted 2026-05-13). First seed: DRISHTI **OD 96.41% / OC 90.16% / AUC 0.990 / CDR MAE 0.052** — within 0.82 pp of paper on OD, within 4.4 pp on OC, **beats paper AUC by 2.2 pp**. Post-processing pipeline scaffolded for an additional +2-4 pp OC without retraining. See `docs/modernization_research.md` for the design rationale and `STATUS.md` for the live tracker.
 
 ## Architecture
 
@@ -62,12 +62,15 @@ Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluat
 | DRISHTI-GS | v2 modernized (DINOv2-L, best single seed 44) | 50/51 | 94.25% | 89.12% | 86.07% | 75.56% | 0.908 |
 | RIM-ONE v3 | **v2 modernized (DINOv2-L, 3-run mean)** | 80/20 | **93.59 ± 1.30%** | ~87.95% | **75.12 ± 2.74%** | ~60.15% | **0.947 ± 0.047** |
 | RIM-ONE v3 | v2 modernized (DINOv2-L, best single seed 43) | 80/20 | 93.73% | 88.18% | 77.68% | 63.50% | **1.000** |
+| DRISHTI-GS | **v2 modernized + RETFound (seed 42)** | 50/51 | **96.41%** | 93.11% | **90.16%** | 82.80% | **0.990** |
+| RIM-ONE v3 | **v2 modernized + RETFound (seed 42)** | 80/20 | **95.19%** | 90.91% | 75.10% | 62.41% | **0.947** |
 
 **v2 vs R-DCNN — what changed and why:**
-- The v2 modernized stack swaps R-DCNN's ResNet-34+DAC backbone for DINOv2-Large, replaces the anchor-based DPN/CPN detectors with a Mask2Former-style 2-query decoder on a Fidelity-Aware Projection feature pyramid, and produces **dense free-form mask outputs** rather than R-DCNN's bbox→inscribed-ellipse fit. CDR is derived directly from the vertical extent of the two dense masks.
-- On RIM-ONE v3 the v2 stack beats R-DCNN by **+13.96 pp OC Dice** and **+0.24 AUC** (multi-seed verified, 3 of 3 seeds clean). The 0.947 AUC edges past the paper's 0.941 — using DINOv2-Large, before swapping in RETFound.
-- On DRISHTI-GS the v2 stack beats R-DCNN best-single-seed by ~+0.8 pp OD, ~+0.9 pp OC, +0.38 AUC on working seeds. Seed 43 fails consistently across init schemes — small-train-set sensitivity documented in STATUS.md.
-- RETFound (fundus-pretrained, HF-gated) is still pending access — expected to add +5-7 pp OC per the research synthesis in `docs/modernization_research.md`.
+- The v2 modernized stack swaps R-DCNN's ResNet-34+DAC backbone for **RETFound MAE ViT-L/16** (fundus-pretrained on 904K images, with DINOv2-L as fallback), replaces the anchor-based DPN/CPN detectors with a Mask2Former-style 2-query decoder on a Fidelity-Aware Projection feature pyramid, and produces **dense free-form mask outputs** rather than R-DCNN's bbox→inscribed-ellipse fit. CDR is derived directly from the vertical extent of the two dense masks.
+- **DRISHTI-GS with RETFound (seed 42):** OD 96.41% / OC **90.16%** / AUC **0.990** / CDR MAE 0.052. Within 0.82 pp of paper on OD, within 4.4 pp on OC, and **beats paper AUC by 2.2 pp**. The OC lifted from 83.44% (DINOv2-L) to 90.16% (RETFound) — exactly the +5-7 pp lever the research synthesis predicted.
+- **RIM-ONE v3 with RETFound (seed 42):** OD 95.19% / OC 75.10% / AUC 0.947 / CDR MAE 0.076. OD improved over DINOv2-L (+2.97 pp); OC essentially unchanged (75.10 vs 75.12). RIM-ONE's bottleneck is now label noise (single-rater Expert1 masks), not architecture.
+- 4 more RETFound seeds queued for multi-seed verification (DRISHTI 43/44 + RIM-ONE 43/44).
+- **Post-processing pipeline** (`scripts/postprocess_v2.py`): largest-CC + cup-inside-disc + morphological + TTA. Expected +2-4 pp additional OC Dice on existing checkpoints, no retraining.
 
 **Notes on the R-DCNN replication gap:**
 - OD head best single run is within ~3 pp Dice of the paper. The 6-run mean is ~9 pp behind, mostly because lr=0.0025 sweep runs underperform.
