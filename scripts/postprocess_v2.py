@@ -65,7 +65,8 @@ def collect_predictions(
     cfg = ckpt["cfg"]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dtype = torch.bfloat16 if cfg.get("dtype_str", "bfloat16") == "bfloat16" else torch.float32
+    # Force fp32 for inference to avoid bf16/autocast complexity. ~1 min slower but bulletproof.
+    dtype = torch.float32
 
     backbone = build_backbone(
         pretrained=False,  # we'll load_state_dict immediately
@@ -96,19 +97,17 @@ def collect_predictions(
         feats = backbone(images)
         return head(feats.patch_features.to(dtype), grid_hw=feats.grid_hw).mask_logits
 
-    autocast_enabled = (device.type == "cuda" and dtype != torch.float32)
     out: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = []
     with torch.no_grad():
         for batch in loader:
             images = batch["image"].to(device, dtype=dtype)
             targets = batch["target"].numpy()
-            with torch.autocast("cuda", dtype=dtype, enabled=autocast_enabled):
-                logits = fwd(images)
-                if use_tta:
-                    images_f = torch.flip(images, dims=[-1])
-                    logits_f = fwd(images_f)
-                    logits_f = torch.flip(logits_f, dims=[-1])
-                    logits = (logits.float() + logits_f.float()) / 2.0
+            logits = fwd(images)
+            if use_tta:
+                images_f = torch.flip(images, dims=[-1])
+                logits_f = fwd(images_f)
+                logits_f = torch.flip(logits_f, dims=[-1])
+                logits = (logits + logits_f) / 2.0
             probs = torch.sigmoid(logits.float()).cpu().numpy()
             for b in range(probs.shape[0]):
                 out.append(
