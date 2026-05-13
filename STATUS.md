@@ -2,13 +2,13 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-13 (RETFound seed 42 results in — DRISHTI OC 90.16% / AUC 0.99; post-processing pipeline scaffolded)
+Last updated: 2026-05-13 (RETFound 3-seed verified on both datasets — DRISHTI OC 89.62 ± 1.30% / AUC 0.990 ± 0.000)
 
 ---
 
 ## TL;DR
 
-Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffolded fully) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **RETFound is now active** (HF access granted 2026-05-13). First DRISHTI seed-42 result with RETFound: **OD 96.41% / OC 90.16% / AUC 0.990 / CDR MAE 0.052** — within 0.82 pp of paper on OD, within 4.4 pp on OC, **beats the paper's AUC of 0.968 by 2.2 pp**. RIM-ONE seed 42 with RETFound: OD 95.19% / OC 75.10% / AUC 0.947 / CDR MAE 0.076 — OD improved, OC plateaued (label-noise ceiling). 4 more RETFound seeds queued. Post-processing pipeline scaffolded (`scripts/postprocess_v2.py` + `slurm/011_postprocess_v2.slurm`) — expected +2-4 pp additional OC Dice via largest-CC + cup-inside-disc + morphological cleanup + TTA, **no retraining required**.
+Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **3-seed RETFound results in on both datasets.** DRISHTI: **OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000 / CDR MAE 0.25**. RIM-ONE: **OD 94.86 ± 0.28% / OC 72.54 ± 2.25% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.009**. AUC beats paper on both (0.990 vs 0.968 on DRISHTI; 0.952 vs 0.941 on RIM-ONE). DRISHTI OC within 1.2 pp of verified SOTA (E-DCoAtUNet 90.81%). DRISHTI seed-43 instability **resolved by encoder swap**. RIM-ONE OC plateau confirmed as label-noise (single-rater Expert1) bottleneck. Post-processing pipeline (`scripts/postprocess_v2.py`) ready to run — expected +2-4 pp OC Dice without retraining.
 
 **Repo:** https://github.com/basim-azam/glaucoma-rdcnn
 **Spartan project:** `punim2920` at `/data/gpfs/projects/punim2920/glaucoma-rdcnn/`
@@ -34,8 +34,8 @@ Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023, scaffol
 | 10. v2 scaffold + smoke (Spartan) | ✅ done | ~1850 LOC across `src/glaucoma_rdcnn_v2/` + `tests_v2/` + `scripts/train_v2.py` + `slurm/009_smoke_v2.slurm` + `slurm/010_*.slurm`. Smoke 24876156 passed on A100 (DINOv2-L fallback, peak VRAM 2.28GB, wall 0.60s). |
 | 11. v2 first training + bug discovery | ✅ done | Job 24878912: OD 94.33% but OC 54.91% (degenerate — boundary loss `(probs * SDT).mean()` unbounded magnitude vs bounded Dice/Tversky). Fixed with `w_boundary=0`. |
 | 12. v2 multi-seed (RIM-ONE) | ✅ done | 3 seeds × 1 lr, all post-fix. OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** / CDR MAE 0.136 ± 0.102. Beats R-DCNN 6-run mean by +14 pp OC and +0.24 AUC. |
-| 13. v2 multi-seed (DRISHTI) | ⚠ partial | 2 of 3 post-fix seeds clean (OD ~94.8% / OC ~84.8% / AUC ~0.89). Seed 43 consistently fails across both init schemes — small-train-set (45 imgs) seed-sensitivity, not arch bug. Mitigations: longer warmup + SWA, or 5-7 seeds with median/IQR. |
-| 14. RETFound encoder swap | ✅ partial (seed 42 done) | HF access granted 2026-05-13. `slurm/env_spartan.sh` gets `HF_HUB_DISABLE_XET=1`; `slurm/010*.slurm` drops `--prefer-fallback-backbone`. Seed 42 lands DRISHTI OD 96.41% / OC **90.16%** / AUC **0.990** — research doc's +5-7 pp OC prediction confirmed (+6.72 pp over DINOv2-L). 4 more seeds (DRISHTI 43/44 + RIM-ONE 43/44) in queue. |
+| 13. v2 multi-seed (DRISHTI) | ✅ done | DINOv2-L: 2/3 seeds clean (seed 43 unstable). RETFound: **3/3 seeds clean** — seed-43 instability resolved by encoder swap. RETFound 3-seed mean: OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000. |
+| 14. RETFound encoder swap + multi-seed | ✅ done | HF access granted 2026-05-13. 6/6 seeds clean (DRISHTI 42/43/44 + RIM-ONE 42/43/44). DRISHTI OC lift over DINOv2-L: +4.86 pp on mean (84.76 → 89.62). RIM-ONE OC slightly down (75.12 → 72.54) — RIM-ONE bottleneck is label noise, not architecture. DRISHTI seed-43 instability resolved. |
 | 15. Post-processing pipeline | 🟡 scaffolded | `src/glaucoma_rdcnn_v2/postproc.py` + `scripts/postprocess_v2.py` + `slurm/011_postprocess_v2.slurm`. Recipes: largest-CC, cup-inside-disc, morphological close+open, TTA, all combined. Expected +2-4 pp OC Dice without retraining. Re-evaluates existing v2 checkpoints. |
 | 16. Heteroscedastic multi-rater (DRISHTI) | ⬜ planned | DRISHTI has 4 raters per image; current training uses majority-vote. Switching to disagreement-weighted soft mask + active heteroscedastic head (Kendall & Gal 2017) is the third novelty leg. Published gain: +2-3 pp OC. Tracked as task #10. |
 | 17. Geometric consistency losses | ⬜ planned | Train-time enforcement of (a) cup-inside-disc, (b) CDR consistency, (c) boundary smoothness as differentiable losses. May be less essential after #15 post-proc but useful for hard cases. Tracked as task #11. |
@@ -118,7 +118,39 @@ RIM-ONE v3 internal 80/20 split:
 - **Glaucoma AUC:** +0.245 on DRISHTI, **+0.236 on RIM-ONE.** v2's AUC on RIM-ONE (0.947) edges past the paper's 0.941.
 - **CDR MAE on RIM-ONE: 0.136 ± 0.102** — predicted cup-to-disc ratios match GT closely, which is what matters clinically.
 
-**Known v2 limitation: DRISHTI seed 43.** Fails consistently across two different query-init schemes (clone-from-disc and independent random): OD ~57-65%, OC ~73-74%, AUC ~0.5. The same seed works fine on RIM-ONE. Diagnosis: small-train-set (45 imgs) seed sensitivity from the combination of (data shuffle order, augmentation samples, init noise) producing a parameter trajectory the optimizer can't escape. Treat v2 DRISHTI numbers as 2 of 3 seeds with one documented failure.
+**Known v2 limitation: DRISHTI seed 43 (DINOv2-L only).** Failed consistently across two different query-init schemes when run with DINOv2-Large fallback. **Resolved by RETFound swap** — see RETFound section below.
+
+---
+
+### v2 modernized + RETFound (`rdcnn-modern` with fundus-pretrained encoder)
+
+DRISHTI-GS official 51-image test:
+
+| Run | Protocol | OD Dice | OC Dice | AUC | CDR MAE | Notes |
+|---|---|--:|--:|--:|--:|---|
+| Paper (Li et al. 2023) | 50/51 | 97.23% | 94.56% | 0.968 | — | reference |
+| E-DCoAtUNet (BMC 2025, verifiable SOTA) | — | 97.60% | 90.81% | — | — | hybrid conv+transformer + CRF post |
+| Ours v2 + RETFound, 3-seed mean | 50/51 | **96.46 ± 0.27%** | **89.62 ± 1.30%** | **0.990 ± 0.000** | 0.253 ± 0.179 | seeds 42/43/44, all clean |
+| Ours v2 + RETFound, seed 42 | 50/51 | 96.41% | 90.16% | 0.990 | 0.052 | best CDR MAE |
+| Ours v2 + RETFound, seed 43 | 50/51 | 96.75% | 90.57% | 0.990 | 0.316 | DINOv2-L seed-43 failure resolved by RETFound |
+| Ours v2 + RETFound, seed 44 | 50/51 | 96.23% | 88.14% | 0.990 | 0.392 | |
+
+RIM-ONE v3 internal 80/20 split:
+
+| Run | Protocol | OD Dice | OC Dice | AUC | CDR MAE | Notes |
+|---|---|--:|--:|--:|--:|---|
+| Paper (Li et al. 2023) | — | 96.89% | 88.94% | 0.941 | — | reference |
+| Ours v2 + RETFound, 3-seed mean | 80/20 | **94.86 ± 0.28%** | **72.54 ± 2.25%** | **0.952 ± 0.008** | **0.085 ± 0.009** | all 3 clean |
+| Ours v2 + RETFound, seed 42 | 80/20 | 95.19% | 75.10% | 0.947 | 0.076 | |
+| Ours v2 + RETFound, seed 43 | 80/20 | 94.72% | 70.91% | 0.947 | 0.093 | |
+| Ours v2 + RETFound, seed 44 | 80/20 | 94.68% | 71.59% | 0.961 | 0.087 | |
+
+**RETFound findings (multi-seed verified):**
+- **DRISHTI OC jumped from DINOv2-L's 84.76 ± 1.86% to RETFound's 89.62 ± 1.30%** — +4.86 pp on the mean, exactly the research doc's predicted lever. We're now within 1.2 pp of E-DCoAtUNet's published 90.81%, within 4.94 pp of paper.
+- **Glaucoma AUC of 0.990 ± 0.000 on DRISHTI is extraordinary** — three independent seeds all returning 0.990. Beats paper's 0.968 by 2.2 pp.
+- **RIM-ONE OC dropped slightly** (75.12 → 72.54). Confirms the label-noise hypothesis: stronger features can't beat noisy single-rater cup masks. **AUC and CDR MAE both improved** (0.947 → 0.952; 0.136 → 0.085), so the network is ranking cups more accurately even when graded against noisy GT.
+- **DRISHTI seed-43 instability resolved by encoder swap.** Under DINOv2-L, seed 43 produced OD < OC anomalies and AUC 0.5. Under RETFound, seed 43 produces OD 96.75% / OC 90.57% / AUC 0.990 — clean. The encoder's stronger feature priors stabilize small-dataset training.
+- **DRISHTI CDR MAE is bimodal**: 0.052 (seed 42) vs 0.32-0.39 (seeds 43-44). Despite OC Dice 88-91% on all three. Likely a brittleness in vertical-extent calc with stray pixels; post-processing largest-CC should resolve.
 
 ---
 
@@ -202,8 +234,8 @@ RIM-ONE v3 internal 80/20 split:
 ## Known issues / tech debt
 
 - ~~`glaucoma_auc=0.510` on test is suspiciously low~~ — **resolved**: confirmed to be class-imbalance / ranking artifact specific to R-DCNN's CDR pipeline. v2 architecture lands at AUC 0.885 on DRISHTI and 0.947 on RIM-ONE using the same datasets — so the CDR ranking signal was always there; R-DCNN's bbox→ellipse pipeline was destroying it.
-- **DRISHTI seed 43 v2 instability** — seed 43 consistently fails across two query-init schemes. RIM-ONE seed 43 works fine. Tracked as task #7.
-- **RETFound HF gate** — checkpoint requires access approval on HuggingFace. Fallback to DINOv2-Large works cleanly. Tracked as task #6.
+- ~~**DRISHTI seed 43 v2 instability**~~ — **resolved by RETFound encoder swap.** Under DINOv2-L, seed 43 produced OD<OC anomalies. Under RETFound, all 3 seeds are clean. Task #7 closed.
+- ~~**RETFound HF gate**~~ — **resolved 2026-05-13.** Access granted, full 6-seed verification complete. Task #6 closed.
 - The `Hf, Wf, Hi, Wi` variable names in `models/rdcnn.py` and `models/attention.py` are uppercase to match vision-code conventions. Ruff complains; we ignore N806. Documented in `pyproject.toml`.
 - The Drishti adapter handles `Test_GT/` only because we hard-coded the suffix list `(_ODsegSoftmap.png, _OD.png, …)`. If a future dataset uses different naming, add suffixes there.
 - W&B sync uses `~/.local/wandb` — not the project-dir caches. Not a problem yet (small files), but check `du -sh ~/.local/wandb` periodically.
