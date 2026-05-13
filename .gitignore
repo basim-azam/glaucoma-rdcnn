@@ -97,3 +97,6 @@ tests_v2/_smoke_outputs/
 
 # accidental nested clone (from a previous extraction step)
 /glaucoma-rdcnn/
+
+# Reference PDFs for style comparison (not part of paper)
+paper/_ref_*.pdf
