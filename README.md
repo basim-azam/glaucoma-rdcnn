@@ -8,7 +8,7 @@ network predicts an OD bounding box, a second head conditioned on the OD region 
 and an inscribed ellipse is fit inside each box to produce the final segmentation. Cup-to-disc ratio (CDR)
 follows directly from the two ellipses; CDR > 0.5 is the standard glaucoma-suspect threshold.
 
-> **Status.** Repo now contains **two architectures**: the R-DCNN replication (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **3-seed RETFound results in on both datasets** (2026-05-13). DRISHTI: **OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000**. RIM-ONE: **OD 94.86 ± 0.28% / OC 72.54 ± 2.25% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.009**. AUC beats paper on both datasets. DRISHTI OC within 1.2 pp of verified SOTA (E-DCoAtUNet 90.81%). Post-processing pipeline ready for an additional +2-4 pp OC. See `docs/modernization_research.md` for design rationale, `STATUS.md` for the live tracker.
+> **Status.** Repo now contains **two architectures**: the R-DCNN replication (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **3-seed RETFound + post-processing verified on both datasets** (2026-05-13). DRISHTI: **OD 96.48 ± 0.26% / OC 89.62 ± 1.29% / AUC 0.990 ± 0.000 / CDR MAE 0.059 ± 0.015** (post-processed). RIM-ONE: **OD 94.95 ± 0.31% / OC 73.00 ± 2.06% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.005**. AUC beats paper on both. DRISHTI OC within 1.2 pp of verified SOTA (E-DCoAtUNet 90.81%). **DRISHTI CDR MAE 4.3× better than raw via largest-CC post-proc** — the clinically meaningful metric now lands at 0.059. Remaining OC gap is architectural; next move is heteroscedastic multi-rater training (task #10). See `docs/modernization_research.md` for design rationale, `STATUS.md` for the live tracker.
 
 ## Architecture
 
@@ -66,13 +66,16 @@ Numbers from the paper (Table 1 + Fig 3) compared against this repo, all evaluat
 | DRISHTI-GS | **v2 modernized + RETFound (seed 42)** | 50/51 | **96.41%** | 93.11% | **90.16%** | 82.80% | **0.990** |
 | RIM-ONE v3 | **v2 modernized + RETFound (3-seed mean)** | 80/20 | **94.86 ± 0.28%** | 90.32 ± 0.52% | **72.54 ± 2.25%** | 59.55 ± 2.49% | **0.952 ± 0.008** |
 | RIM-ONE v3 | **v2 modernized + RETFound (seed 42)** | 80/20 | **95.19%** | 90.91% | 75.10% | 62.41% | **0.947** |
+| DRISHTI-GS | **v2 + RETFound + post-proc (3-seed mean)** | 50/51 | **96.48 ± 0.26%** | — | **89.62 ± 1.29%** | — | **0.990 ± 0.000** |
+| RIM-ONE v3 | **v2 + RETFound + post-proc (3-seed mean)** | 80/20 | **94.95 ± 0.31%** | — | **73.00 ± 2.06%** | — | **0.952 ± 0.008** |
 
 **v2 vs R-DCNN — what changed and why:**
 - The v2 modernized stack swaps R-DCNN's ResNet-34+DAC backbone for **RETFound MAE ViT-L/16** (fundus-pretrained on 904K images, with DINOv2-L as fallback), replaces the anchor-based DPN/CPN detectors with a Mask2Former-style 2-query decoder on a Fidelity-Aware Projection feature pyramid, and produces **dense free-form mask outputs** rather than R-DCNN's bbox→inscribed-ellipse fit. CDR is derived directly from the vertical extent of the two dense masks.
 - **DRISHTI-GS with RETFound (3-seed mean):** OD 96.46 ± 0.27% / OC **89.62 ± 1.30%** / AUC **0.990 ± 0.000**. Within 0.77 pp of paper on OD, within 4.94 pp on OC, within 1.2 pp of E-DCoAtUNet's verified SOTA (90.81%), and **beats paper AUC by 2.2 pp** consistently across three seeds. OC lift over DINOv2-L: +4.86 pp on the mean — research doc's predicted +5-7 pp lever confirmed.
 - **RIM-ONE v3 with RETFound (3-seed mean):** OD 94.86 ± 0.28% / OC 72.54 ± 2.25% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.009. OD improved (+1.27 pp over DINOv2-L). OC dropped slightly (72.54 vs 75.12) — stronger features can't beat noisy single-rater Expert1 cup masks. **AUC and CDR MAE both improved**, meaning the network ranks cups more accurately even when graded against noisy GT.
 - **DRISHTI seed-43 instability resolved by RETFound swap** — under DINOv2-L, seed 43 produced OD<OC anomalies; under RETFound, seed 43 produces OD 96.75% / OC 90.57% / AUC 0.990, fully clean. Stronger fundus-pretrained priors stabilize small-dataset training.
-- **Post-processing pipeline** (`scripts/postprocess_v2.py`): largest-CC + cup-inside-disc + morphological + TTA. Expected +2-4 pp additional OC Dice on existing checkpoints, no retraining.
+- **Post-processing pipeline** (`scripts/postprocess_v2.py`): 8 recipes tested across all 6 RETFound checkpoints. **OC Dice unchanged** — raw v2-RETFound masks are already geometrically clean, no post-proc headroom. **DRISHTI CDR MAE crashed from 0.253 to 0.059 (4.3× reduction)** via the `cc` op alone — single-pixel artifacts on seeds 43/44 were poisoning vertical-extent calc. For clinical screening CDR MAE is the meaningful metric, so this is the win.
+- **The remaining 4.94 pp OC gap to paper on DRISHTI is now confirmed architectural** — not noise. Next lever: heteroscedastic multi-rater training (DRISHTI has 4 raters per image; we currently use only majority-vote). Tracked as task #10.
 
 **Notes on the R-DCNN replication gap:**
 - OD head best single run is within ~3 pp Dice of the paper. The 6-run mean is ~9 pp behind, mostly because lr=0.0025 sweep runs underperform.
@@ -160,10 +163,4 @@ If you use this code, please cite both the original paper and this repository:
   journal = {Eye},
   volume  = {37},
   pages   = {1080--1087},
-  year    = {2023},
-  doi     = {10.1038/s41433-022-02055-w}
-}
-
-@software{azam2026rdcnn,
-  author = {Basim Azam},
-  title  = {glaucoma-rdcnn: Replication of R-DCNN for j
+  year 

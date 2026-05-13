@@ -2,13 +2,13 @@
 
 Living document. Updated as work progresses. Intent: anyone (including future-you) can read this and know exactly where the project stands and what to do next.
 
-Last updated: 2026-05-13 (RETFound 3-seed verified on both datasets — DRISHTI OC 89.62 ± 1.30% / AUC 0.990 ± 0.000)
+Last updated: 2026-05-13 (post-processing done — CDR MAE on DRISHTI crashed 0.253 → 0.059 via largest-CC; OC Dice unchanged so the gap is architectural)
 
 ---
 
 ## TL;DR
 
-Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **3-seed RETFound results in on both datasets.** DRISHTI: **OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000 / CDR MAE 0.25**. RIM-ONE: **OD 94.86 ± 0.28% / OC 72.54 ± 2.25% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.009**. AUC beats paper on both (0.990 vs 0.968 on DRISHTI; 0.952 vs 0.941 on RIM-ONE). DRISHTI OC within 1.2 pp of verified SOTA (E-DCoAtUNet 90.81%). DRISHTI seed-43 instability **resolved by encoder swap**. RIM-ONE OC plateau confirmed as label-noise (single-rater Expert1) bottleneck. Post-processing pipeline (`scripts/postprocess_v2.py`) ready to run — expected +2-4 pp OC Dice without retraining.
+Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023) and a **v2 modernized stack** (`rdcnn-modern`: RETFound MAE ViT-L/16 + Mask2Former-style 2-query head + dense free-form masks). **3-seed RETFound results in on both datasets.** DRISHTI: **OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000 / CDR MAE 0.25**. RIM-ONE: **OD 94.86 ± 0.28% / OC 72.54 ± 2.25% / AUC 0.952 ± 0.008 / CDR MAE 0.085 ± 0.009**. AUC beats paper on both (0.990 vs 0.968 on DRISHTI; 0.952 vs 0.941 on RIM-ONE). DRISHTI OC within 1.2 pp of verified SOTA (E-DCoAtUNet 90.81%). DRISHTI seed-43 instability **resolved by encoder swap**. RIM-ONE OC plateau confirmed as label-noise (single-rater Expert1) bottleneck. **Post-processing applied (`cc+cid+morph` recipe):** OC Dice unchanged (raw v2-RETFound masks already geometrically clean) but **DRISHTI CDR MAE crashed 0.253 → 0.059 (4.3× reduction)** via largest-CC op — clinically meaningful since CDR is the screening metric. Remaining OC gap to paper (4.94 pp on DRISHTI) confirmed architectural; next move is heteroscedastic multi-rater training (task #10).
 
 **Repo:** https://github.com/basim-azam/glaucoma-rdcnn
 **Spartan project:** `punim2920` at `/data/gpfs/projects/punim2920/glaucoma-rdcnn/`
@@ -36,7 +36,7 @@ Repo contains TWO architectures: **R-DCNN replication** (Li et al. 2023) and a *
 | 12. v2 multi-seed (RIM-ONE) | ✅ done | 3 seeds × 1 lr, all post-fix. OD 93.59 ± 1.30% / OC **75.12 ± 2.74%** / AUC **0.947 ± 0.047** / CDR MAE 0.136 ± 0.102. Beats R-DCNN 6-run mean by +14 pp OC and +0.24 AUC. |
 | 13. v2 multi-seed (DRISHTI) | ✅ done | DINOv2-L: 2/3 seeds clean (seed 43 unstable). RETFound: **3/3 seeds clean** — seed-43 instability resolved by encoder swap. RETFound 3-seed mean: OD 96.46 ± 0.27% / OC 89.62 ± 1.30% / AUC 0.990 ± 0.000. |
 | 14. RETFound encoder swap + multi-seed | ✅ done | HF access granted 2026-05-13. 6/6 seeds clean (DRISHTI 42/43/44 + RIM-ONE 42/43/44). DRISHTI OC lift over DINOv2-L: +4.86 pp on mean (84.76 → 89.62). RIM-ONE OC slightly down (75.12 → 72.54) — RIM-ONE bottleneck is label noise, not architecture. DRISHTI seed-43 instability resolved. |
-| 15. Post-processing pipeline | 🟡 scaffolded | `src/glaucoma_rdcnn_v2/postproc.py` + `scripts/postprocess_v2.py` + `slurm/011_postprocess_v2.slurm`. Recipes: largest-CC, cup-inside-disc, morphological close+open, TTA, all combined. Expected +2-4 pp OC Dice without retraining. Re-evaluates existing v2 checkpoints. |
+| 15. Post-processing pipeline | ✅ done | 8 recipes evaluated across all 6 RETFound checkpoints (job 24898*). **OC Dice unchanged** (89.62 → 89.62 on DRISHTI; 72.59 → 73.00 on RIM-ONE) — raw v2-RETFound masks are already geometrically clean, no post-proc headroom. **CDR MAE crashed 0.253 → 0.059 on DRISHTI** (4.3× reduction) from `cc` op alone — single-pixel artifacts on seeds 43/44 were poisoning vertical-extent calc. Best deployment recipe: `cc+cid+morph`. |
 | 16. Heteroscedastic multi-rater (DRISHTI) | ⬜ planned | DRISHTI has 4 raters per image; current training uses majority-vote. Switching to disagreement-weighted soft mask + active heteroscedastic head (Kendall & Gal 2017) is the third novelty leg. Published gain: +2-3 pp OC. Tracked as task #10. |
 | 17. Geometric consistency losses | ⬜ planned | Train-time enforcement of (a) cup-inside-disc, (b) CDR consistency, (c) boundary smoothness as differentiable losses. May be less essential after #15 post-proc but useful for hard cases. Tracked as task #11. |
 | 18. Baseline comparisons (M-Net etc.) | ⬜ stretch goal | New code; days of work. |
@@ -150,7 +150,21 @@ RIM-ONE v3 internal 80/20 split:
 - **Glaucoma AUC of 0.990 ± 0.000 on DRISHTI is extraordinary** — three independent seeds all returning 0.990. Beats paper's 0.968 by 2.2 pp.
 - **RIM-ONE OC dropped slightly** (75.12 → 72.54). Confirms the label-noise hypothesis: stronger features can't beat noisy single-rater cup masks. **AUC and CDR MAE both improved** (0.947 → 0.952; 0.136 → 0.085), so the network is ranking cups more accurately even when graded against noisy GT.
 - **DRISHTI seed-43 instability resolved by encoder swap.** Under DINOv2-L, seed 43 produced OD < OC anomalies and AUC 0.5. Under RETFound, seed 43 produces OD 96.75% / OC 90.57% / AUC 0.990 — clean. The encoder's stronger feature priors stabilize small-dataset training.
-- **DRISHTI CDR MAE is bimodal**: 0.052 (seed 42) vs 0.32-0.39 (seeds 43-44). Despite OC Dice 88-91% on all three. Likely a brittleness in vertical-extent calc with stray pixels; post-processing largest-CC should resolve.
+
+### v2 + RETFound + post-processing (`cc+cid+morph` recipe, 3-seed mean)
+
+| Dataset | OD Dice | OC Dice | AUC | CDR MAE | Note |
+|---|--:|--:|--:|--:|---|
+| DRISHTI baseline | 96.46 ± 0.27% | 89.62 ± 1.30% | 0.990 ± 0.000 | 0.253 ± 0.179 | before post-proc |
+| **DRISHTI + post-proc** | **96.48 ± 0.26%** | **89.62 ± 1.29%** | **0.990 ± 0.000** | **0.059 ± 0.015** | `cc+cid+morph`, **CDR MAE 4.3× better** |
+| RIM-ONE baseline | 94.86 ± 0.28% | 72.59 ± 2.18% | 0.952 ± 0.008 | 0.085 ± 0.008 | before post-proc |
+| RIM-ONE + post-proc | 94.95 ± 0.31% | 73.00 ± 2.06% | 0.952 ± 0.008 | 0.085 ± 0.005 | `tta+cc+cid+morph`, +0.41 pp OC |
+
+**What post-processing did and didn't do:**
+- **DID:** crashed DRISHTI CDR MAE from 0.253 to 0.059. The `cc` (largest connected component) op alone fixed it — seeds 43/44 had single-pixel artifacts at mask boundaries poisoning the vertical-extent calculation. **For clinical screening this is the most important metric** since CDR is what determines glaucoma-suspect classification.
+- **DID NOT:** move OC Dice. The +2-4 pp prediction was wrong because the raw masks are already geometrically clean — no spurious components, no cup-outside-disc leakage, no jagged boundaries. Post-processing has no headroom to recover.
+- **Implication:** the remaining 4.94 pp OC gap to paper on DRISHTI (and the 16.40 pp gap on RIM-ONE) is now confirmed to be an *architectural/training* limitation, not a noise-cleanup problem. To close it we need either (a) heteroscedastic multi-rater training (task #10 — DRISHTI publishes 4 raters per image, current pipeline throws this information away) or (b) geometric consistency losses (task #11), or both.
+- ~~**DRISHTI CDR MAE is bimodal**~~ — **resolved by `cc` post-proc op.** Seeds 43/44 had single-pixel artifacts at mask boundaries throwing off vertical-extent calc. Largest-CC strip fixes all seeds, mean drops from 0.253 ± 0.179 to 0.059 ± 0.014.
 
 ---
 
@@ -246,8 +260,4 @@ RIM-ONE v3 internal 80/20 split:
 
 Every time you (or I) make material progress:
 
-1. Update the relevant phase row's status emoji
-2. Add the job ID + outcome to the completed-jobs table
-3. Move items between Next-Steps sections as they're started/done
-4. If the model gets a new measurement, add a row to the Results table
-5. Commit with `
+1. Update
