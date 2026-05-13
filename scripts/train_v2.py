@@ -41,6 +41,8 @@ def main() -> int:
     ap.add_argument("--use-heteroscedastic", action="store_true",
                     help="Enable heteroscedastic loss term (w=0.05)")
     ap.add_argument("--dtype", choices=["bfloat16", "float32"], default="bfloat16")
+    ap.add_argument("--chromatic-mode", choices=["identity", "rg_lum", "rg_zero", "rrr_gg"], default="identity",
+                    help="Chromatic preprocessing mode (CP module): identity uses RGB; rg_lum emphasises R for OD, G for OC, luminance fallback")
     args = ap.parse_args()
 
     # Resolve output dir
@@ -68,6 +70,7 @@ def main() -> int:
         decoder_dim=args.decoder_dim,
         num_decoder_layers=args.num_decoder_layers,
         dtype_str=args.dtype,
+        chromatic_mode=args.chromatic_mode,
     )
 
     print(f"[train_v2] config: {json.dumps(cfg.__dict__, indent=2)}")

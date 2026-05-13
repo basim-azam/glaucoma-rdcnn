@@ -44,6 +44,7 @@ class TrainerConfig:
     decoder_dim: int = 256
     num_decoder_layers: int = 3
     dtype_str: str = "bfloat16"  # "bfloat16" or "float32"
+    chromatic_mode: str = "identity"  # CP module: "identity", "rg_lum", "rg_zero", "rrr_gg"
 
 
 def _build_loaders(cfg: TrainerConfig) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -53,6 +54,7 @@ def _build_loaders(cfg: TrainerConfig) -> tuple[DataLoader, DataLoader, DataLoad
         encoder_size=cfg.encoder_size,
         target_size=cfg.target_size,
         augment=True,
+        chromatic_mode=cfg.chromatic_mode,
         seed=cfg.seed,
     )
     val_ds = FundusSegDataset(
@@ -61,6 +63,7 @@ def _build_loaders(cfg: TrainerConfig) -> tuple[DataLoader, DataLoader, DataLoad
         encoder_size=cfg.encoder_size,
         target_size=cfg.target_size,
         augment=False,
+        chromatic_mode=cfg.chromatic_mode,
         seed=cfg.seed,
     )
     test_ds = FundusSegDataset(
@@ -69,6 +72,7 @@ def _build_loaders(cfg: TrainerConfig) -> tuple[DataLoader, DataLoader, DataLoad
         encoder_size=cfg.encoder_size,
         target_size=cfg.target_size,
         augment=False,
+        chromatic_mode=cfg.chromatic_mode,
         seed=cfg.seed,
     )
     train_loader = DataLoader(

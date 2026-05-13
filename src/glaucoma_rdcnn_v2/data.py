@@ -22,6 +22,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from .chromatic import chromatic_preprocess
+
 
 _NORM_MEAN = (0.485, 0.456, 0.406)
 _NORM_STD = (0.229, 0.224, 0.225)
@@ -81,6 +83,7 @@ class FundusSegDataset(Dataset):
         encoder_size: int = 224,
         target_size: int = 512,
         augment: bool = False,
+        chromatic_mode: str = "identity",
         seed: int = 0,
     ) -> None:
         self.root = Path(root)
@@ -88,6 +91,7 @@ class FundusSegDataset(Dataset):
         self.encoder_size = encoder_size
         self.target_size = target_size
         self.augment = augment
+        self.chromatic_mode = chromatic_mode
         self.rng = np.random.default_rng(seed)
 
         splits_path = self.root / "splits" / "official.json"
@@ -125,6 +129,10 @@ class FundusSegDataset(Dataset):
 
         if self.augment:
             img, od, oc = _augment(img, od, oc, self.rng)
+
+        # Chromatic preprocessing (drop-in front of encoder, before normalisation)
+        if self.chromatic_mode != "identity":
+            img = chromatic_preprocess(img, mode=self.chromatic_mode)
 
         # Resize: encoder input is 224, target masks at 512
         img_enc = cv2.resize(img, (self.encoder_size, self.encoder_size), interpolation=cv2.INTER_LINEAR)

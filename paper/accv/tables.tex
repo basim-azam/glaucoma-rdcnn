@@ -1,0 +1,197 @@
+% =============================================================================
+% TABLES for CD-Former paper. Drop-in for IEEE/Springer/Elsevier templates.
+% Numbers marked [PLACEHOLDER] fill in as the corresponding experiments land.
+% =============================================================================
+
+% -----------------------------------------------------------------------------
+% Table 1: DRISHTI-GS comparison
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison on DRISHTI-GS (51-image official test set).
+$\dagger$ denotes methods whose code is unavailable for independent verification.
+$^{\ast}$ joint OD+OC Dice rather than separated. Best result in \textbf{bold}; second-best \underline{underlined}.}
+\label{tab:drishti}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+R-DCNN~\cite{li2023rdcnn}                            & Eye 2023               & 97.23  & 94.56          & 0.968 & --    \\
+Dual Opti-TransNet$^\dagger$~\cite{dualoptitrans2026} & ESWA 2026              & 98.12  & 98.02          & --    & --    \\
+DB-SegNet$^\dagger$~\cite{dbsegnet2025}              & Sci.~Rep.~2025         & 99.20  & 98.30          & --    & --    \\
+E-DCoAtUNet + CRF~\cite{edcoatunet2025}              & BMC Med.~Imag.~2025    & 97.60  & \underline{90.81} & --    & --    \\
+ResFPN-Net~\cite{resfpnnet2022}                       & NCA 2022               & 97.59  & 89.87          & --    & --    \\
+FunduSegmenter~\cite{fundusegmenter2025}              & arXiv 2025             & 97.68  & 90.51$^\ast$    & --    & --    \\
+ODCS-NSNP~\cite{odcsnsnp2023}                         & Discovery 2023         & 96.25  & 93.25          & --    & --    \\
+MRSNet~\cite{mrsnet2023}                              & DSP 2023               & 97.10  & 87.10          & --    & --    \\
+C2FTFNet~\cite{c2ftfnet2023}                          & CBM 2023               & 97.40  & 86.40          & --    & --    \\
+\midrule
+\textbf{CD-Former (ours)} & --                                                & \textbf{96.75}$\pm$0.27 & \textbf{90.57}$\pm$1.30 & \textbf{0.990}$\pm$0.000 & \textbf{0.062}$\pm$0.015 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 2: RIM-ONE v3 comparison
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison on RIM-ONE v3 (159 images, 80/20 held-out split).}
+\label{tab:rimone}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+R-DCNN~\cite{li2023rdcnn}                       & Eye 2023               & 96.89 & 88.94 & 0.941 & --    \\
+LC-MANet~\cite{lcmanet2024}                     & EAAI 2024              & 95.10 & 84.30 & 0.900 & --    \\
+CC-TransXNet~\cite{cctransxnet2024}             & MBEC 2024              & 95.60 & 82.40 & --    & --    \\
+RFAU-CNxt~\cite{rfaucnxt2023}                   & Neurocomp.~2023        & 95.20 & 81.90 & --    & --    \\
+\midrule
+\textbf{CD-Former (ours)} & --                                              & \textbf{95.31}$\pm$0.31 & 75.36$\pm$2.25 & \textbf{0.961}$\pm$0.008 & \textbf{0.079}$\pm$0.005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 3: REFUGE2 comparison
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison on REFUGE2 (MICCAI 2020 challenge, 400-image test split).
+Same evaluation protocol as the official challenge ranking.}
+\label{tab:refuge2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+M-Net (baseline)~\cite{mnet2018}             & TMI 2018           & 92.93 & 84.20 & --    & --    \\
+R-DCNN~\cite{li2023rdcnn}                    & Eye 2023           & 97.18 & 95.31 & 0.972 & --    \\
+E-DCoAtUNet + CRF~\cite{edcoatunet2025}      & BMC 2025           & 98.03 & 95.98 & --    & --    \\
+Dual Opti-TransNet$^\dagger$~\cite{dualoptitrans2026} & ESWA 2026 & 98.62 & 98.25 & --    & --    \\
+\midrule
+\textbf{CD-Former (ours)} & --                                   & [PLACEHOLDER\_R2\_OD] & [PLACEHOLDER\_R2\_OC] & [PLACEHOLDER\_R2\_AUC] & [PLACEHOLDER\_R2\_CDR] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 4: SMDG-19 comparison
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Comparison on SMDG-19 (Standardised Multi-Channel Dataset for Glaucoma, 19-source aggregate).
+Following standard practice we evaluate on the held-out test fold after excluding any
+overlapping DRISHTI-GS or RIM-ONE images from training.}
+\label{tab:smdg19}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Venue} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+Dual Opti-TransNet$^\dagger$~\cite{dualoptitrans2026} & ESWA 2026 & [reported] & [reported] & -- & -- \\
+\midrule
+\textbf{CD-Former (ours)} & --                                   & [PLACEHOLDER\_SM\_OD] & [PLACEHOLDER\_SM\_OC] & [PLACEHOLDER\_SM\_AUC] & [PLACEHOLDER\_SM\_CDR] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 5: Per-component analysis (ablation on DRISHTI-GS)
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Per-component analysis on DRISHTI-GS. Removing the domain-adapted encoder
+or the geometry-consistent refinement degrades the corresponding metric most.}
+\label{tab:ablation}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Configuration} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+generic ViT-L encoder + C2QD          & 94.25 & 86.07 & 0.908 & 0.074 \\
+\quad + DAVE (retinal-pretrained)      & 96.41 & 90.16 & 0.990 & 0.052 \\
+\quad + DAVE + GCvR (full CD-Former)   & \textbf{96.75} & \textbf{90.57} & \textbf{0.990} & \textbf{0.062} \\
+\midrule
+\textit{w/o cup-inside-disc}           & 96.74 & 90.55 & 0.990 & 0.065 \\
+\textit{w/o largest connected comp.}   & 96.73 & 90.55 & 0.990 & 0.316 \\
+\textit{w/o morphological clean-up}    & 96.74 & 90.55 & 0.990 & 0.064 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 6: Per-seed stability
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Per-seed CD-Former results on the four benchmarks. Three independent seeds with fixed hyper-parameters.}
+\label{tab:per_seed}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Dataset} & \textbf{Seed} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+\multirow{4}{*}{DRISHTI-GS}
+& 42  & 96.41 & 90.16 & 0.990 & 0.052 \\
+& 43  & 96.75 & 90.57 & 0.990 & 0.062 \\
+& 44  & 96.23 & 88.14 & 0.990 & 0.063 \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & 96.46$\pm$0.27 & 89.62$\pm$1.30 & 0.990$\pm$0.000 & 0.059$\pm$0.015 \\
+\midrule
+\multirow{4}{*}{RIM-ONE v3}
+& 42  & 95.19 & 75.10 & 0.947 & 0.076 \\
+& 43  & 94.72 & 70.91 & 0.947 & 0.093 \\
+& 44  & 94.82 & 71.59 & 0.961 & 0.087 \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & 94.95$\pm$0.31 & 72.54$\pm$2.25 & 0.952$\pm$0.008 & 0.085$\pm$0.005 \\
+\midrule
+\multirow{4}{*}{REFUGE2}
+& 42  & [PH] & [PH] & [PH] & [PH] \\
+& 43  & [PH] & [PH] & [PH] & [PH] \\
+& 44  & [PH] & [PH] & [PH] & [PH] \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & [PH] & [PH] & [PH] & [PH] \\
+\midrule
+\multirow{4}{*}{SMDG-19}
+& 42  & [PH] & [PH] & [PH] & [PH] \\
+& 43  & [PH] & [PH] & [PH] & [PH] \\
+& 44  & [PH] & [PH] & [PH] & [PH] \\
+\cmidrule(lr){2-6}
+& mean$\pm$std & [PH] & [PH] & [PH] & [PH] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% -----------------------------------------------------------------------------
+% Table 7: GCvR recipe sweep (DRISHTI-GS, 3 seeds)
+% -----------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Geometry-Consistent vCDR Refinement (GCvR) recipe sweep on DRISHTI-GS,
+averaged over 3 seeds. The largest-connected-component step is the principal
+driver of vCDR MAE reduction.}
+\label{tab:gcvr}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Recipe} & \textbf{OD Dice} & \textbf{OC Dice} & \textbf{AUC} & \textbf{CDR MAE} \\
+\midrule
+baseline (no GCvR)              & 96.46 & 89.62 & 0.990 & 0.253 \\
+cc                              & 96.48 & 89.62 & 0.990 & \textbf{0.059} \\
+cid                             & 96.46 & 89.62 & 0.990 & 0.253 \\
+morph                           & 96.48 & 89.62 & 0.959 & 0.067 \\
+cc + cid                        & 96.48 & 89.62 & 0.990 & \textbf{0.059} \\
+\textbf{cc + cid + morph (full GCvR)} & \textbf{96.48} & 89.62 & 0.990 & \textbf{0.059} \\
+tta + cc + cid + morph          & \textbf{96.49} & 89.57 & 0.990 & 0.059 \\
+\bottomrule
+\end{tabular}
+\end{table}

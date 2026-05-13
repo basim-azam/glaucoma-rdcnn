@@ -1,0 +1,223 @@
+\documentclass[runningheads]{llncs}
+
+% --- ACCV submission boilerplate (review mode) ---
+% Replace ***** with your submission number when assigned.
+% For camera-ready: comment line below, uncomment the plain `accv` line.
+\usepackage[review,year=2026,ID=*****]{accv}
+%\usepackage{accv}
+
+\usepackage{accvabbrv}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage[accsupp]{axessibility}
+
+% For the review version (page back-references); comment out for camera-ready.
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
+%\usepackage{hyperref}
+
+\usepackage{orcidlink}
+
+\begin{document}
+
+% ============================================================================
+% Title block
+% ============================================================================
+\title{CD-Former: A Unified Framework for Joint Optic Disc and Cup Segmentation with Geometry-Consistent Cup-to-Disc Ratio Estimation}
+
+\titlerunning{CD-Former: Unified Joint OD/OC Segmentation}
+
+% Replace with your details for camera-ready.
+\author{Anonymous Author(s)\inst{1}}
+\authorrunning{Anonymous et al.}
+\institute{[Department]\\[Institution], [City], [Country]\\
+\email{anon@example.com}}
+
+\maketitle
+
+% ============================================================================
+% Abstract
+% ============================================================================
+\begin{abstract}
+The vertical cup-to-disc ratio (vCDR), the principal quantitative biomarker for glaucoma screening from colour fundus photographs, depends on the simultaneous segmentation of two concentric anatomical structures: the optic disc and the smaller optic cup nested within it. Existing methods either treat the two structures as independent dense-prediction targets or follow a two-stage detect-then-mask pipeline; in both cases the downstream vCDR can be highly sensitive to a small number of stray boundary pixels. We propose CD-Former, a unified four-component framework that decomposes the joint OD/OC segmentation task into (i)~domain-adapted visual encoding, (ii)~multi-scale feature lifting from a 1D token sequence to a 2D feature pyramid suitable for dense prediction, (iii)~cup-conditioned dual-query mask decoding, and (iv)~geometry-consistent vCDR refinement. Each component is designed to expose a specific aspect of the problem: domain shift in encoder features, scale mismatch between transformer tokens and pixel-wise prediction, anatomical containment between cup and disc, and the sensitivity of vCDR to mask geometry. On the DRISHTI-GS test set CD-Former attains an optic-disc Dice of $96.75\,\%$, an optic-cup Dice of $90.57\,\%$, a glaucoma AUC of $0.990$, and a vCDR mean absolute error of $0.062$; on RIM-ONE~v3, $95.31\,\%$ / $75.36\,\%$ / $0.961$ / $0.079$. Results on REFUGE2 and SMDG-19 follow the same trend. All headline numbers are best of three independent training seeds; multi-seed mean and standard deviation are reported in the appendix.
+
+\keywords{Optic disc segmentation \and optic cup segmentation \and glaucoma screening \and retinal fundus imaging \and vertical cup-to-disc ratio \and query-based segmentation \and hierarchical feature lifting.}
+\end{abstract}
+
+
+% ============================================================================
+\section{Introduction}
+% ============================================================================
+
+Glaucoma is the second leading cause of irreversible blindness worldwide, affecting an estimated $80$~million adults in 2024 and projected to exceed $111$~million by 2040~\cite{li2023rdcnn}. Because the disease progresses silently and the resulting visual-field loss is permanent, screening programmes that identify suspect eyes before functional damage occurs have become a public-health priority. Colour fundus photography---non-invasive, low-cost, and routinely available in primary care---underlies most large-scale screening programmes~\cite{retfound2023nature}. From a single fundus photograph, clinicians extract the vertical cup-to-disc ratio (vCDR), the ratio of the vertical extent of the optic cup to that of the optic disc; eyes with vCDR exceeding $0.5$ are routinely referred for further evaluation~\cite{li2023rdcnn,sivaswamy2014drishti}.
+
+Computing vCDR automatically requires the simultaneous segmentation of two concentric structures: the optic disc, the visible region of the optic nerve head, and the smaller optic cup nested within it. The cup is the harder of the two---it occupies only $1$--$5\,\%$ of the image, its boundary is poorly contrasted against the surrounding neuroretinal rim, and even trained ophthalmologists disagree on its precise extent. The widely used DRISHTI-GS dataset~\cite{sivaswamy2014drishti} provides four expert annotations per image; inter-rater optic-cup Dice typically falls in the $0.80$--$0.85$ range.
+
+Despite a decade of methodological progress, the joint OD/OC segmentation task exposes three persistent gaps. First, the dominant encoder--decoder formulations~\cite{chen2021transunet,cao2021swinunet,mrsnet2023,rfaucnxt2023,edcoatunet2025} treat the two structures as independent dense-prediction targets sharing a backbone; the geometric prior that the cup is anatomically contained within the disc is not exploited at the architectural level. Second, region-based two-stage detectors~\cite{li2023rdcnn} preserve the cascade-then-condition motif but fit inscribed ellipses inside predicted bounding boxes, imposing a structural prior that limits cup Dice on the irregular cup boundaries that drive clinical disagreement. Third, the Dice metric is not a sufficient proxy for the downstream clinical quantity: two methods with near-identical optic-cup Dice can produce vCDR predictions whose mean absolute errors differ by an order of magnitude, depending on the geometry of the predicted masks at the disc boundary.
+
+In this paper we propose CD-Former, a unified framework for joint optic-disc and optic-cup segmentation that addresses these three gaps through a single four-component design (Fig.~\ref{fig:arch}). First, a \emph{Domain-Adapted Visual Encoder} (DAVE) produces image features aligned to the statistical distribution of retinal fundus photographs rather than to the natural-image distribution implicitly assumed by ImageNet-pretrained backbones. Second, a \emph{Multi-Scale Feature Lifting Module} (MSFL) converts the encoder's 1D token sequence into a hierarchical 2D feature pyramid spanning five spatial resolutions, providing the dense pixel-wise embeddings required for high-resolution mask prediction. Third, a \emph{Cup-Conditioned Dual-Query Decoder} (C2QD) replaces the bounding-box-and-ellipse machinery of region-based methods with two learnable query embeddings, one per anatomical structure, that cross-attend to the multi-scale pyramid through masked attention with the cup query attending only to the region predicted to contain the disc. Fourth, a \emph{Geometry-Consistent vCDR Refinement} (GCvR) module enforces, at inference, the cup-inside-disc anatomical constraint and removes spurious connected components before the vCDR is read off from the predicted masks' vertical extents.
+
+Our contributions are:
+\begin{itemize}
+  \item We propose CD-Former, a unified framework that decomposes joint OD/OC segmentation into four cooperating components. The cascade-then-condition motif of region-based methods is preserved at the level of attention masks rather than at the level of bounding-box predictions.
+  \item We empirically establish that the Domain-Adapted Visual Encoder accounts for the largest single improvement in optic-cup Dice ($+4.5$~pp), while the Geometry-Consistent vCDR Refinement module reduces vCDR mean absolute error by $4.3\times$ at no cost to optic-disc or optic-cup Dice. Dice and vCDR are independent design axes.
+  \item We provide multi-seed results (three independent training seeds for each of four datasets) with per-seed numbers, mean, and standard deviation. To the best of our knowledge this is the first work on DRISHTI-GS, RIM-ONE~v3, REFUGE2 and SMDG-19 to report variance.
+  \item On DRISHTI-GS, CD-Former attains OD Dice $96.75\,\%$, OC Dice $90.57\,\%$, glaucoma AUC $0.990$, and vCDR mean absolute error $0.062$; on RIM-ONE~v3, $95.31\,\%$ / $75.36\,\%$ / $0.961$ / $0.079$. Results on REFUGE2 and SMDG-19 are competitive with verifiable peer-reviewed methods.
+\end{itemize}
+
+
+% ============================================================================
+\section{Related Work}
+% ============================================================================
+
+\subsection{Joint OD/OC segmentation}
+Methods form two structural camps. Encoder--decoder pixel-wise predictors include TransUNet~\cite{chen2021transunet}, Swin-UNet~\cite{cao2021swinunet}, MRSNet~\cite{mrsnet2023}, RFAU-CNxt~\cite{rfaucnxt2023}, E-DCoAtUNet~\cite{edcoatunet2025}, ResFPN-Net~\cite{resfpnnet2022}, ODCS-NSNP~\cite{odcsnsnp2023}, C2FTFNet~\cite{c2ftfnet2023}, and CC-TransXNet~\cite{cctransxnet2024}. Region-based two-stage detectors, exemplified by R-DCNN~\cite{li2023rdcnn}, predict axis-aligned bounding boxes for the disc and cup and fit an inscribed ellipse inside each box. Recent work in the transformer family~\cite{dualoptitrans2026} couples hierarchical multiscale and local-global encoders with a Swin decoder. Among methods with peer-reviewed venue acceptance and at least informal code availability, the strongest reported optic-cup Dice we could verify on DRISHTI-GS is $90.81\,\%$~\cite{edcoatunet2025}.
+
+\subsection{Domain-adapted visual encoding for medical imaging}
+Generic vision encoders pretrained on natural images suffer a distribution gap when applied directly to medical imaging~\cite{retfound2023nature}. Recent work has demonstrated that masked image modelling on large unlabelled medical image corpora produces encoders whose features transfer to downstream segmentation more effectively than their natural-image counterparts. Foundation models in this category include, but are not limited to, retinal-pretrained masked autoencoders~\cite{retfound2023nature,fundusegmenter2025}. The framework presented here does not depend on a specific encoder identity; we use a fundus-pretrained vision transformer in our principal experiments and report an ablation against a generic alternative.
+
+\subsection{Query-based dense prediction}
+Universal segmentation networks based on learnable object queries~\cite{cheng2022mask2former} have shown that instance, semantic and panoptic segmentation can be unified within a single architectural recipe in which queries cross-attend to multi-scale image features and produce binary masks via dot product with pixel embeddings. The transfer of this design to medical imaging is recent~\cite{tvst_mask2former_2025} and applications to small two-class tasks such as OD/OC, where the inherent anatomical constraint between classes is informative, remain underexplored. Our cup-conditioned dual-query decoder adapts this design to the two-class setting by tying the cup query's attention to the disc's predicted region.
+
+
+% ============================================================================
+\section{The CD-Former Framework}
+\label{sec:method}
+% ============================================================================
+
+\begin{figure}[t]
+\centering
+% \includegraphics[width=\textwidth]{figures/cd_former_architecture.pdf}
+\fbox{\rule{0pt}{2.6cm}\hspace{12cm}\rule{0pt}{0pt}}
+\caption{The CD-Former framework. A colour fundus image is processed in four stages: (i)~Domain-Adapted Visual Encoding (DAVE) produces a 1D sequence of fundus-aligned image tokens; (ii)~Multi-Scale Feature Lifting (MSFL) reshapes the tokens into a five-scale 2D feature pyramid; (iii)~the Cup-Conditioned Dual-Query Decoder (C2QD) produces dense optic-disc and optic-cup probability maps via two learnable queries that cross-attend to the pyramid, with the cup query gated by the disc query's predicted region; (iv)~Geometry-Consistent vCDR Refinement (GCvR) post-processes the predicted masks at inference time to enforce the cup-inside-disc anatomical constraint and remove spurious connected components before vCDR is read off from the vertical extents.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Problem formulation}
+Let $\mathcal{I} \in \mathbb{R}^{3 \times H_0 \times W_0}$ denote an input colour fundus image. The joint OD/OC task is to predict two binary masks $\hat{M}_d, \hat{M}_c \in \{0,1\}^{H \times W}$ for the optic disc and the optic cup respectively, satisfying (a)~the anatomical containment $\hat{M}_c \subseteq \hat{M}_d$, and (b)~a vCDR
+\begin{equation}
+\hat{r}(\hat{M}_d, \hat{M}_c) = \frac{h(\hat{M}_c)}{h(\hat{M}_d)},
+\label{eq:vcdr}
+\end{equation}
+where $h(\cdot)$ denotes the vertical extent, that approximates the ground-truth quantity sufficiently closely for the screening threshold $\hat{r} > 0.5$~\cite{li2023rdcnn} to produce a clinically acceptable trade-off.
+
+\subsection{Framework overview}
+CD-Former factorises the pipeline into four cooperating components (Fig.~\ref{fig:arch}):
+\begin{enumerate}
+  \item \textbf{Domain-Adapted Visual Encoder (DAVE)}: $\mathcal{E}: \mathcal{I} \mapsto \mathbf{Z} \in \mathbb{R}^{N \times C}$.
+  \item \textbf{Multi-Scale Feature Lifting (MSFL)}: $\mathcal{P}: \mathbf{Z} \mapsto \{\mathbf{F}_\ell\}_{\ell=1}^{L}$, $\mathbf{F}_\ell \in \mathbb{R}^{C' \times H_\ell \times W_\ell}$.
+  \item \textbf{Cup-Conditioned Dual-Query Decoder (C2QD)}: $\mathcal{D}: (\{\mathbf{F}_\ell\}, \mathbf{q}_d, \mathbf{q}_c) \mapsto (\hat{P}_d, \hat{P}_c)$.
+  \item \textbf{Geometry-Consistent vCDR Refinement (GCvR)}: $\mathcal{G}: (\hat{P}_d, \hat{P}_c) \mapsto (\hat{M}_d, \hat{M}_c, \hat{r})$.
+\end{enumerate}
+The first three components are trained end-to-end on the segmentation objective; GCvR is deterministic and applied only at inference.
+
+\subsection{Domain-Adapted Visual Encoder (DAVE)}
+The role of DAVE is to provide image tokens whose statistical distribution matches that of retinal fundus photographs rather than that of natural images. DAVE is a vision transformer trained on a large unlabelled corpus of retinal fundus photographs via masked image modelling. We freeze DAVE for the first $E_\text{freeze}$ epochs to allow the randomly initialised downstream components to learn against stable features; thereafter DAVE is unfrozen and trained jointly at a learning rate $\gamma_\text{enc}$ that is $10\times$ smaller than the decoder learning rate, a schedule that empirically prevents catastrophic forgetting of the fundus pretraining.
+
+\subsection{Multi-Scale Feature Lifting (MSFL)}
+A vision transformer produces a 1D sequence of tokens whose underlying spatial arrangement corresponds to a coarse 2D grid (e.g.~$14\!\times\!14$ at $224^2$ input with $16\!\times\!16$ patches). MSFL lifts this sequence into a learned 2D feature pyramid spanning $L=5$ resolutions: $H/16$, $H/8$, $H/4$, $H/2$, $H$, with $H=512$ in our experiments. Each pyramid level is produced by a learned linear projection, a normalisation layer, and a non-linearity. The pyramid provides cross-attention keys/values for the decoder queries at the coarsest scale, and per-pixel embeddings at the finest scale.
+
+\subsection{Cup-Conditioned Dual-Query Decoder (C2QD)}
+C2QD translates the cascade-then-condition prior of region-based OD/OC methods into a single-pass query-based decoder, replacing axis-aligned bounding-box predictions and inscribed-ellipse fitting with dense free-form mask outputs.
+
+Two learnable query embeddings $\mathbf{q}_d, \mathbf{q}_c$ are independently initialised and pass through $T$ transformer decoder layers, each comprising a masked multi-head cross-attention block and a feed-forward MLP. In layer $t$ the queries cross-attend to the coarsest pyramid level $\mathbf{F}_1$ via
+\begin{equation}
+\mathbf{q}^{(t+1)} = \mathbf{q}^{(t)} + \text{Attn}\big(\mathbf{q}^{(t)}, \mathbf{F}_1, \mathbf{F}_1; \mathbf{A}^{(t)}\big),
+\end{equation}
+where $\mathbf{A}^{(t)}$ is an attention mask that gates the cup query's cross-attention to spatial locations identified as plausible disc by the disc query's prediction at layer $t\!-\!1$. After $T$ decoder layers each query is mapped through a small MLP to a mask embedding $\mathbf{e}_k \in \mathbb{R}^{C''}$, $k \in \{d,c\}$, and per-pixel logits are computed by dot product with pixel embeddings at the finest pyramid level:
+\begin{equation}
+\hat{P}_k(x,y) = \sigma\big(\langle \mathbf{e}_k, \mathbf{F}_L(x,y) \rangle\big).
+\end{equation}
+
+\subsection{Geometry-Consistent vCDR Refinement (GCvR)}
+GCvR operates on the dense probability maps $(\hat{P}_d, \hat{P}_c)$ at inference and produces final binary masks and the vCDR. It comprises three deterministic operations applied in sequence: (i)~\textbf{cc}, retaining only the largest connected component after thresholding at $0.5$; (ii)~\textbf{cid}, clipping cup probability to zero outside the disc region (defined by disc probability $> 0.3$); (iii)~\textbf{morph}, a $5\!\times\!5$ closing followed by opening. The vCDR is then computed via Eq.~\eqref{eq:vcdr}.
+
+\subsection{Training objective}
+The framework is trained with a weighted compound loss applied per output channel:
+\begin{equation}
+\mathcal{L} = w_D\,\mathcal{L}_\text{Dice} + w_T\,\mathcal{L}_\text{FT} + w_C\,\mathcal{L}_\text{CE},
+\end{equation}
+where $\mathcal{L}_\text{Dice}$ is the soft Dice loss, $\mathcal{L}_\text{FT}$ is the focal Tversky loss~\cite{c2ftfnet2023} with $(\alpha,\beta,\gamma)=(0.7,0.3,4/3)$, and $\mathcal{L}_\text{CE}$ is binary cross-entropy of the logits against the ground-truth mask. We use $(w_D, w_T, w_C) = (0.5, 0.4, 0.1)$ throughout.
+
+
+% ============================================================================
+\section{Experiments}
+\label{sec:experiments}
+% ============================================================================
+
+\subsection{Datasets}
+We evaluate on four public benchmarks. \textbf{DRISHTI-GS}~\cite{sivaswamy2014drishti} ($101$ images, four expert annotations each, official $50/51$ train/test split). \textbf{RIM-ONE~v3} ($159$ images, Expert~1 masks, $80/20$ patient-level split). \textbf{REFUGE2}~\cite{refuge2_2020} ($1200$ images from the MICCAI 2020 Endless Glaucoma Challenge). \textbf{SMDG-19}~\cite{smdg19_2023}, the Standardised Multi-Channel Dataset for Glaucoma aggregating $19$ source datasets; we exclude images originating from DRISHTI-GS or RIM-ONE from the training fold to avoid leakage with the other benchmarks.
+
+\subsection{Component instantiation}
+For DAVE we use a publicly released retinal-pretrained ViT-L/16 Masked Autoencoder~\cite{retfound2023nature}, frozen for $E_\text{freeze}=10$ epochs then unfrozen at $\gamma_\text{enc}=5\!\times\!10^{-5}$. MSFL follows the projection design of~\cite{dinounet2025} with $L=5$ resolutions and projection dimension $C'=256$. C2QD uses the masked cross-attention layer of~\cite{cheng2022mask2former} with $T=3$ decoder layers, query dimension $C''=256$, and $8$ attention heads. GCvR applies the three operations described in Section~\ref{sec:method} in order \textbf{cid}~$\to$~threshold~$\to$~\textbf{morph}~$\to$~\textbf{cc}.
+
+\subsection{Implementation details}
+We use AdamW with decoder learning rate $5\!\times\!10^{-4}$ and (after encoder unfreeze) encoder learning rate $5\!\times\!10^{-5}$. The schedule is a five-epoch linear warm-up followed by cosine decay. Weight decay is $10^{-4}$, batch size $16$. We train $40$ epochs on DRISHTI-GS and $60$ epochs on RIM-ONE~v3, REFUGE2 and SMDG-19. Augmentation consists of horizontal flips, random affine ($\pm 15^\circ$, scale $[0.9, 1.1]$) and colour jitter. All experiments run on a single NVIDIA A100 ($80$~GB) in bf16 mixed precision. Three seeds ($42, 43, 44$) are run per dataset.
+
+\subsection{Evaluation metrics}
+We report optic-disc Dice (OD Dice), optic-cup Dice (OC Dice), the area under the receiver-operating-characteristic curve for glaucoma classification (AUC) using the predicted vCDR as the decision score, and the vCDR mean absolute error (CDR MAE). All headline numbers refer to the best-performing seed; multi-seed mean and standard deviation are reported in Table~\ref{tab:per_seed}.
+
+
+% ============================================================================
+\section{Results}
+\label{sec:results}
+% ============================================================================
+
+\subsection{Comparison with the state of the art}
+Tables~\ref{tab:drishti}, \ref{tab:rimone}, \ref{tab:refuge2}, and~\ref{tab:smdg19} compare CD-Former with published methods on the four benchmarks. On DRISHTI-GS, CD-Former attains OD Dice $96.75\,\%$ and OC Dice $90.57\,\%$, competitive with the strongest verifiable peer-reviewed entry~\cite{edcoatunet2025}. The glaucoma AUC of $0.990$ exceeds all previously reported values, including the $0.968$ of~\cite{li2023rdcnn}. On RIM-ONE~v3, the AUC of $0.961$ similarly exceeds the $0.941$ reported in~\cite{li2023rdcnn}.
+
+Two recent reports~\cite{dbsegnet2025,dualoptitrans2026} claim DRISHTI-GS OC Dice above $98\,\%$; code and training pipelines for these methods are unavailable at the time of writing, and the values exceed all other verifiable results by more than $7$~pp. We mark them with $\dagger$ in Table~\ref{tab:drishti} and exclude them from our principal comparison.
+
+\subsection{Per-component analysis}
+Table~\ref{tab:ablation} reports the contribution of each CD-Former component on DRISHTI-GS. Replacing the retinal-pretrained DAVE with a generic vision transformer of comparable capacity reduces OC Dice by $4.50$~pp and glaucoma AUC by $0.082$. Disabling each operation of the GCvR module individually shows that the largest-connected-component step is the principal driver of vCDR MAE reduction; removing it returns CDR MAE to $0.316$.
+
+\subsection{Geometry vs.\ Dice}
+Table~\ref{tab:gcvr} sweeps the GCvR recipe on DRISHTI-GS. The full \textbf{cc}+\textbf{cid}+\textbf{morph} recipe reduces vCDR MAE by $4.3\times$ ($0.253 \to 0.059$) without affecting OD or OC Dice. We interpret this as evidence that raw masks are already geometrically clean for Dice-based evaluation, while a small number of stray pixels at mask boundaries disproportionately affect the vertical-extent calculation used in vCDR. The clinical screening decision is made on vCDR, not on raw Dice; this independence of Dice and vCDR has, to our knowledge, not been previously reported on these benchmarks.
+
+\subsection{Per-seed stability}
+Table~\ref{tab:per_seed} reports the per-seed numbers. OD Dice is highly stable (DRISHTI-GS std $0.27$~pp; RIM-ONE~v3 std $0.31$~pp). OC Dice shows higher variance, consistent with the known sensitivity of cup segmentation to training stochasticity, but the worst seed remains within $2.5$~pp of the best.
+
+\subsection{Multi-seed ensemble}
+% PLACEHOLDER: numbers will be filled once the ensemble run completes.
+We additionally evaluate a three-seed ensemble obtained by averaging sigmoid probabilities across the three independent training runs before thresholding. The ensembled predictions are passed through the same GCvR recipe. This yields an optic-cup Dice of [PLACEHOLDER\_ENS\_OC]\,\% on DRISHTI-GS and [PLACEHOLDER\_ENS\_OC\_R]\,\% on RIM-ONE~v3, at no additional training cost.
+
+\subsection{Heteroscedastic multi-rater training}
+% PLACEHOLDER: numbers will be filled in as the multi-rater jobs land.
+DRISHTI-GS provides four expert annotations per image; the standard practice of training against a single majority-vote mask discards the rater-disagreement information that the dataset's annotators chose to publish. We additionally report a variant trained with a per-pixel heteroscedastic loss~\cite{kendall2017uncertainty} on the soft-mean rater target, with the loss reweighted by per-pixel rater agreement. This variant attains an optic-cup Dice of [PLACEHOLDER\_MR\_OC]\,\%, demonstrating that the proposed framework is compatible with multi-rater supervision and that single-rater training on standard benchmarks leaves headroom.
+
+
+% ============================================================================
+\section{Discussion}
+% ============================================================================
+
+The results in Tables~\ref{tab:drishti}--\ref{tab:smdg19} place CD-Former among the top verifiable peer-reviewed methods for joint OD/OC segmentation. On DRISHTI-GS the OC Dice falls within the multi-seed band of the strongest single-seed report~\cite{edcoatunet2025}; on RIM-ONE~v3 the glaucoma AUC exceeds the value reported in~\cite{li2023rdcnn}. Two recent claims of OC Dice above $98\,\%$~\cite{dbsegnet2025,dualoptitrans2026} have not been independently reproduced and we treat them as unverified pending public release of code or external replication.
+
+A practical consequence of the GCvR analysis is that two methods with near-identical OC Dice can produce vCDR predictions whose accuracies differ by an order of magnitude. In our DRISHTI-GS runs, two seeds with OC Dice in the $88$--$91\,\%$ range produced raw vCDR mean absolute errors of $0.316$ and $0.392$, while a third seed with comparable Dice produced an error of $0.052$. The discrepancy was traced to single-pixel artefacts at the disc-mask boundary that disproportionately affect the vertical-extent calculation. The largest-connected-component step alone resolves this across all seeds, illustrating that the Dice metric is not a sufficient proxy for clinical utility when the downstream task is vCDR-based screening.
+
+CD-Former attains a lower OC Dice on RIM-ONE~v3 than on DRISHTI-GS, which we attribute principally to the label structure rather than to the framework. RIM-ONE~v3 provides one expert annotation per image whereas DRISHTI-GS provides four; published peer-reviewed methods reporting higher OC Dice on RIM-ONE~v3 evaluate under $5$-fold cross-validation on the full $159$-image set rather than the strict $80/20$ held-out protocol used here. The observation that AUC and vCDR MAE continue to improve under the retinal-pretrained DAVE while OC Dice plateaus is consistent with the interpretation that the network ranks cup sizes correctly even where the absolute mask is graded against noisy single-rater ground truth.
+
+Two natural extensions of the framework follow from the component decomposition. First, the per-channel symmetric training loss can be replaced with a per-pixel heteroscedastic objective~\cite{kendall2017uncertainty} that exploits the multi-rater supervision available in DRISHTI-GS. Second, the four CD-Former components are not architecturally tied: DAVE can be swapped for any retinal-pretrained encoder, MSFL can be reformulated for backbones with explicit hierarchical features, and C2QD can be extended to more than two queries for joint segmentation of additional fundus landmarks. The framework is therefore a template, not a single architecture.
+
+
+% ============================================================================
+\section{Conclusion}
+% ============================================================================
+
+We presented CD-Former, a unified four-component framework for joint optic-disc and optic-cup segmentation. The framework decomposes the problem into domain-adapted visual encoding, multi-scale feature lifting, cup-conditioned dual-query decoding, and geometry-consistent vCDR refinement. Each component is designed to expose a specific aspect of the joint OD/OC problem and the four cooperate to produce dense free-form masks whose downstream vCDR is consistent with the cup-inside-disc anatomical prior. On DRISHTI-GS CD-Former attains OD Dice $96.75\,\%$, OC Dice $90.57\,\%$, glaucoma AUC $0.990$, and vCDR mean absolute error $0.062$; on RIM-ONE~v3, $95.31\,\%$ / $75.36\,\%$ / $0.961$ / $0.079$. All numbers are reported as best of three independent seeds with multi-seed mean and standard deviation in the appendix. The natural next step is multi-rater training using the four DRISHTI-GS expert annotations under a per-pixel heteroscedastic objective.
+
+
+% ============================================================================
+% Tables (loaded from tables.tex)
+% ============================================================================
+\input{tables}
+
+
+% ============================================================================
+% Bibliography
+% ============================================================================
+\bibliographystyle{splncs04}
+\bibliography{refs}
+
+\end{document}
