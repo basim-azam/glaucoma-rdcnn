@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Outputs (gitignored; weights are released via OneDrive)
+weights/*.ckpt
+outputs/
+logs/
+wandb/
+
+# Data
+data/*/raw/
+data/*/_extracted/
+data/*/images/
+data/*/masks/
+data/*/splits/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "model_family": "cd-former",
+  "release_date": "2026-XX-XX",
+  "weights": [
+    {
+      "name": "cd_former_drishti_seed42",
+      "url": "<ONEDRIVE_LINK_DRISHTI_42>",
+      "md5": "<MD5_DRISHTI_42>",
+      "size_bytes": 1396000000,
+      "dataset": "drishti_gs",
+      "seed": 42,
+      "metrics": {"od_dice": 0.9641, "oc_dice": 0.9016, "auc": 0.990, "cdr_mae": 0.052}
+    },
+    {
+      "name": "cd_former_drishti_seed43",
+      "url": "<ONEDRIVE_LINK_DRISHTI_43>",
+      "md5": "<MD5_DRISHTI_43>",
+      "size_bytes": 1396000000,
+      "dataset": "drishti_gs",
+      "seed": 43,
+      "metrics": {"od_dice": 0.9675, "oc_dice": 0.9057, "auc": 0.990, "cdr_mae": 0.062}
+    },
+    {
+      "name": "cd_former_drishti_seed44",
+      "url": "<ONEDRIVE_LINK_DRISHTI_44>",
+      "md5": "<MD5_DRISHTI_44>",
+      "size_bytes": 1396000000,
+      "dataset": "drishti_gs",
+      "seed": 44,
+      "metrics": {"od_dice": 0.9623, "oc_dice": 0.8814, "auc": 0.990, "cdr_mae": 0.063}
+    },
+    {
+      "name": "cd_former_rimone_seed42",
+      "url": "<ONEDRIVE_LINK_RIMONE_42>",
+      "md5": "<MD5_RIMONE_42>",
+      "size_bytes": 1396000000,
+      "dataset": "rim_one_v3",
+      "seed": 42,
+      "metrics": {"od_dice": 0.9519, "oc_dice": 0.7510, "auc": 0.947, "cdr_mae": 0.076}
+    },
+    {
+      "name": "cd_former_rimone_seed43",
+      "url": "<ONEDRIVE_LINK_RIMONE_43>",
+      "md5": "<MD5_RIMONE_43>",
+      "size_bytes": 1396000000,
+      "dataset": "rim_one_v3",
+      "seed": 43,
+      "metrics": {"od_dice": 0.9472, "oc_dice": 0.7091, "auc": 0.947, "cdr_mae": 0.093}
+    },
+    {
+      "name": "cd_former_rimone_seed44",
+      "url": "<ONEDRIVE_LINK_RIMONE_44>",
+      "md5": "<MD5_RIMONE_44>",
+      "size_bytes": 1396000000,
+      "dataset": "rim_one_v3",
+      "seed": 44,
+      "metrics": {"od_dice": 0.9482, "oc_dice": 0.7159, "auc": 0.961, "cdr_mae": 0.087}
+    }
+  ],
+  "datasets": [
+    {
+      "name": "drishti_gs",
+      "preprocessed_url": "<ONEDRIVE_LINK_DRISHTI_DATA>",
+      "md5": "<MD5_DRISHTI_DATA>",
+      "note": "Preprocessed (CLAHE + 800x800 ROI crop) outputs of scripts/prepare_drishti_gs.py + scripts/preprocess.py. Original images and masks from https://cvit.iiit.ac.in/projects/mip/drishti-gs/."
+    },
+    {
+      "name": "rim_one_v3",
+      "preprocessed_url": "<ONEDRIVE_LINK_RIMONE_DATA>",
+      "md5": "<MD5_RIMONE_DATA>",
+      "note": "Preprocessed outputs of scripts/prepare_rim_one.py + scripts/preprocess.py."
+    },
+    {
+      "name": "refuge2",
+      "preprocessed_url": "<ONEDRIVE_LINK_REFUGE2_DATA>",
+      "md5": "<MD5_REFUGE2_DATA>",
+      "note": "Original challenge data at https://refuge.grand-challenge.org."
+    },
+    {
+      "name": "smdg19",
+      "preprocessed_url": "<ONEDRIVE_LINK_SMDG_DATA>",
+      "md5": "<MD5_SMDG_DATA>",
+      "note": "Original Kaggle release at https://www.kaggle.com/datasets/deathtrooper/multichannel-glaucoma-benchmark-dataset."
+    }
+  ]
+}
