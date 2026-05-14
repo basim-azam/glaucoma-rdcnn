@@ -52,7 +52,7 @@ def main() -> int:
         args.output_dir = args.output_base / name
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    from cd_former.trainer import TrainerConfig, V2Trainer
+    from cd_former.trainer import TrainerConfig, Trainer
 
     cfg = TrainerConfig(
         data_root=str(args.data_root),
@@ -76,7 +76,7 @@ def main() -> int:
     print(f"[train_v2] config: {json.dumps(cfg.__dict__, indent=2)}")
     print(f"[train_v2] output_dir: {args.output_dir}")
 
-    trainer = V2Trainer(cfg)
+    trainer = Trainer(cfg)
     result = trainer.train()
 
     # Save final metrics

@@ -98,7 +98,7 @@ def _lr_scale(epoch: int, total: int, warmup: int) -> float:
     return 0.5 * (1.0 + math.cos(math.pi * progress))
 
 
-class V2Trainer:
+class Trainer:
     def __init__(self, cfg: TrainerConfig) -> None:
         self.cfg = cfg
         torch.manual_seed(cfg.seed)

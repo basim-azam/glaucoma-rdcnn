@@ -36,18 +36,33 @@ cd cd-former
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# 1. Download pre-trained weights from HuggingFace Hub
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx   # while the repo is private
-python scripts/download_weights.py    # downloads all 6 checkpoints to weights/
+# Set your HuggingFace read-token (while the weights repo is private)
+export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
+```
 
-# 2. Run inference on a single fundus image
+### Run inference in three lines of Python
+
+```python
+from cd_former import load_pretrained
+import torch, cv2
+
+backbone, head, cfg = load_pretrained("drishti_seed43")  # auto-fetches from HF Hub
+# ... pass a 224x224 ImageNet-normalised fundus through (backbone, head) ...
+```
+
+### Or use the CLI
+
+```bash
 python scripts/infer.py \
     --image samples/example_fundus.jpg \
-    --checkpoint weights/cd_former_drishti_seed43.ckpt \
+    --checkpoint $(python -c "from cd_former import download_checkpoint; print(download_checkpoint('drishti_seed43'))") \
     --output samples/example_output.png
 
-# 3. Full evaluation on DRISHTI-GS
+# Full DRISHTI-GS evaluation
 bash scripts/evaluate.sh drishti
+
+# Bulk-download all 6 checkpoints to ./weights/
+python scripts/download_weights.py
 ```
 
 ---
