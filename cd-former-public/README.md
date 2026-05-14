@@ -70,7 +70,6 @@ cd-former/
 │   ├── MODEL_ZOO.md           download links and MD5 sums
 │   ├── DATASETS.md            how to obtain each public dataset
 │   └── TRAINING_RECIPE.md   step-by-step recipe to retrain the models
-├── paper/                     LaTeX source for the ACCV submission
 └── samples/                   one example image to test inference end-to-end
 ```
 

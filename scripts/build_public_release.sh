@@ -21,9 +21,6 @@ cp scripts/train_v2.py        "$TARGET/scripts/train.py"
 cp scripts/evaluate_v2.py     "$TARGET/scripts/evaluate.py"
 cp scripts/postprocess_v2.py  "$TARGET/scripts/postprocess.py"
 cp scripts/ensemble_v2.py     "$TARGET/scripts/ensemble.py"
-cp scripts/make_qualitative_figure.py "$TARGET/scripts/make_qualitative_figure.py"
-cp scripts/make_ablation_qualitative.py "$TARGET/scripts/make_ablation_qualitative.py"
-cp scripts/plot_paper_figures.py "$TARGET/scripts/plot_paper_figures.py"
 cp scripts/prepare_drishti_gs.py "$TARGET/scripts/prepare_drishti_gs.py"
 cp scripts/prepare_rim_one.py    "$TARGET/scripts/prepare_rim_one.py"
 cp scripts/prepare_refuge2.py    "$TARGET/scripts/prepare_refuge2.py"
@@ -36,6 +33,4 @@ cp tests_v2/test_04_compound_loss.py "$TARGET/tests/test_compound_loss.py"
 # Rename glaucoma_rdcnn_v2 → cd_former across copied files
 find "$TARGET/src/cd_former" "$TARGET/scripts" "$TARGET/tests" -name '*.py' \
     -exec sed -i 's/glaucoma_rdcnn_v2/cd_former/g' {} +
-# Sync the paper
-cp -r paper/accv "$TARGET/paper/"
 echo "Done — $TARGET is ready for git init && git remote add origin <new repo>"

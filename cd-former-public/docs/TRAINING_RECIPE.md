@@ -79,16 +79,14 @@ python scripts/ensemble.py \
     --data-root data/drishti_gs
 ```
 
-## 5. Generating paper figures
+## 5. (Optional) Qualitative visualisation of your own predictions
 
 ```bash
 python scripts/make_qualitative_figure.py \
     --checkpoint outputs/cd_former_drishti_seed43/best.ckpt \
     --data-root data/drishti_gs \
     --top-k 4 \
-    --output-pdf paper/figures/fig4_drishti.pdf
-
-python scripts/plot_paper_figures.py    # produces ROC, ablation, CDR scatter
+    --output-pdf qualitative.pdf
 ```
 
 ## Expected numbers
