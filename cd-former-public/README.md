@@ -36,8 +36,9 @@ cd cd-former
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# 1. Download pre-trained weights (see MODEL_ZOO.md for direct links)
-bash scripts/download_weights.sh
+# 1. Download pre-trained weights from HuggingFace Hub
+export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx   # while the repo is private
+python scripts/download_weights.py    # downloads all 6 checkpoints to weights/
 
 # 2. Run inference on a single fundus image
 python scripts/infer.py \

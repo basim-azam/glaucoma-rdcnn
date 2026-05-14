@@ -1,12 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "model_family": "cd-former",
   "release_date": "2026-XX-XX",
+  "huggingface_repo": "basim-azam/cd-former-weights",
+  "huggingface_repo_type": "model",
   "weights": [
     {
       "name": "cd_former_drishti_seed42",
-      "url": "<ONEDRIVE_LINK_DRISHTI_42>",
-      "md5": "<MD5_DRISHTI_42>",
+      "filename": "cd_former_drishti_seed42.ckpt",
+      "md5": "a4fb79ba00c6cd110b19420a55f100c1",
       "size_bytes": 1396000000,
       "dataset": "drishti_gs",
       "seed": 42,
@@ -14,8 +16,8 @@
     },
     {
       "name": "cd_former_drishti_seed43",
-      "url": "<ONEDRIVE_LINK_DRISHTI_43>",
-      "md5": "<MD5_DRISHTI_43>",
+      "filename": "cd_former_drishti_seed43.ckpt",
+      "md5": "87ac87993c1f38dc55891b0762c2d091",
       "size_bytes": 1396000000,
       "dataset": "drishti_gs",
       "seed": 43,
@@ -23,8 +25,8 @@
     },
     {
       "name": "cd_former_drishti_seed44",
-      "url": "<ONEDRIVE_LINK_DRISHTI_44>",
-      "md5": "<MD5_DRISHTI_44>",
+      "filename": "cd_former_drishti_seed44.ckpt",
+      "md5": "c792459c024b849c58bfc8d0d3589a7f",
       "size_bytes": 1396000000,
       "dataset": "drishti_gs",
       "seed": 44,
@@ -32,8 +34,8 @@
     },
     {
       "name": "cd_former_rimone_seed42",
-      "url": "<ONEDRIVE_LINK_RIMONE_42>",
-      "md5": "<MD5_RIMONE_42>",
+      "filename": "cd_former_rimone_seed42.ckpt",
+      "md5": "fe522fe78278b79fdaa910ffe85eeb3e",
       "size_bytes": 1396000000,
       "dataset": "rim_one_v3",
       "seed": 42,
@@ -41,8 +43,8 @@
     },
     {
       "name": "cd_former_rimone_seed43",
-      "url": "<ONEDRIVE_LINK_RIMONE_43>",
-      "md5": "<MD5_RIMONE_43>",
+      "filename": "cd_former_rimone_seed43.ckpt",
+      "md5": "1f086afb237cfde6048d2044e1a0e127",
       "size_bytes": 1396000000,
       "dataset": "rim_one_v3",
       "seed": 43,
@@ -50,38 +52,19 @@
     },
     {
       "name": "cd_former_rimone_seed44",
-      "url": "<ONEDRIVE_LINK_RIMONE_44>",
-      "md5": "<MD5_RIMONE_44>",
+      "filename": "cd_former_rimone_seed44.ckpt",
+      "md5": "2648bb9468a630f4e4c46573736e44d4",
       "size_bytes": 1396000000,
       "dataset": "rim_one_v3",
       "seed": 44,
       "metrics": {"od_dice": 0.9482, "oc_dice": 0.7159, "auc": 0.961, "cdr_mae": 0.087}
     }
   ],
-  "datasets": [
-    {
-      "name": "drishti_gs",
-      "preprocessed_url": "<ONEDRIVE_LINK_DRISHTI_DATA>",
-      "md5": "<MD5_DRISHTI_DATA>",
-      "note": "Preprocessed (CLAHE + 800x800 ROI crop) outputs of scripts/prepare_drishti_gs.py + scripts/preprocess.py. Original images and masks from https://cvit.iiit.ac.in/projects/mip/drishti-gs/."
-    },
-    {
-      "name": "rim_one_v3",
-      "preprocessed_url": "<ONEDRIVE_LINK_RIMONE_DATA>",
-      "md5": "<MD5_RIMONE_DATA>",
-      "note": "Preprocessed outputs of scripts/prepare_rim_one.py + scripts/preprocess.py."
-    },
-    {
-      "name": "refuge2",
-      "preprocessed_url": "<ONEDRIVE_LINK_REFUGE2_DATA>",
-      "md5": "<MD5_REFUGE2_DATA>",
-      "note": "Original challenge data at https://refuge.grand-challenge.org."
-    },
-    {
-      "name": "smdg19",
-      "preprocessed_url": "<ONEDRIVE_LINK_SMDG_DATA>",
-      "md5": "<MD5_SMDG_DATA>",
-      "note": "Original Kaggle release at https://www.kaggle.com/datasets/deathtrooper/multichannel-glaucoma-benchmark-dataset."
-    }
-  ]
+  "datasets": {
+    "note": "Datasets are obtained from the original sources (see docs/DATASETS.md). Preprocessed archives are not hosted on HuggingFace at this time.",
+    "drishti_gs": "https://cvit.iiit.ac.in/projects/mip/drishti-gs/",
+    "rim_one_v3": "http://medimrg.webs.ull.es/research/retinal-imaging/rim-one",
+    "refuge2": "https://refuge.grand-challenge.org/",
+    "smdg19": "https://www.kaggle.com/datasets/deathtrooper/multichannel-glaucoma-benchmark-dataset"
+  }
 }

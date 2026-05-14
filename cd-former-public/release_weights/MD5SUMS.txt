@@ -1,0 +1,6 @@
+a4fb79ba00c6cd110b19420a55f100c1  cd_former_drishti_seed42.ckpt
+87ac87993c1f38dc55891b0762c2d091  cd_former_drishti_seed43.ckpt
+c792459c024b849c58bfc8d0d3589a7f  cd_former_drishti_seed44.ckpt
+fe522fe78278b79fdaa910ffe85eeb3e  cd_former_rimone_seed42.ckpt
+1f086afb237cfde6048d2044e1a0e127  cd_former_rimone_seed43.ckpt
+2648bb9468a630f4e4c46573736e44d4  cd_former_rimone_seed44.ckpt
